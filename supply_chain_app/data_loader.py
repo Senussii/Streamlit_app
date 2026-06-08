@@ -7,15 +7,21 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-# ── absolute paths ────────────────────────────────────────────────────────────
-BASE     = os.path.dirname(os.path.dirname(__file__))
-DIM_DIR  = os.path.join(BASE, "data", "Dimensions Sheets V2")
-FACT_DIR = os.path.join(BASE, "data", "Facts Sheets")
+# ── path resolution ────────────────────────────────────────────────────────────
+# supply_chain_app/ lives inside the repo root.
+# The /data/ folder is a sibling of supply_chain_app/ at the repo root.
+_APP_DIR  = os.path.dirname(os.path.abspath(__file__))          # …/supply_chain_app
+_REPO_ROOT = os.path.dirname(_APP_DIR)                          # repo root
+DIM_DIR   = os.path.join(_REPO_ROOT, "data", "Dimensions Sheets V2")
+FACT_DIR  = os.path.join(_REPO_ROOT, "data", "Facts Sheets")
 
 
 # ── low-level loaders ─────────────────────────────────────────────────────────
-def _csv(name):  return pd.read_csv(os.path.join(DIM_DIR, name))
-def _xl(name):   return pd.read_excel(os.path.join(FACT_DIR, name))
+def _csv(name):
+    return pd.read_csv(os.path.join(DIM_DIR, name))
+
+def _xl(name):
+    return pd.read_excel(os.path.join(FACT_DIR, name), engine="openpyxl")
 
 
 @st.cache_data(show_spinner=False)
@@ -29,7 +35,6 @@ def load_dimensions():
     txn_type = _csv("Dimension.Transaction Type.csv")
     payment  = _csv("Dimension.Payment Method.csv")
 
-    # parse dates
     date["Date"] = pd.to_datetime(date["Date"], dayfirst=True, errors="coerce")
 
     return {
@@ -41,12 +46,12 @@ def load_dimensions():
 
 @st.cache_data(show_spinner=False)
 def load_facts():
-    sale      = _xl("Fact.Sale.xlsx")
-    order     = _xl("Fact.Order.xlsx")
-    purchase  = _xl("Fact.Purchase.xlsx")
-    stock_h   = _xl("Fact.Stock Holding.xlsx")
-    movement  = _xl("Fact.Movement.xlsx")
-    txn       = pd.read_csv(os.path.join(FACT_DIR, "Fact.Transaction.csv"))
+    sale     = _xl("Fact.Sale.xlsx")
+    order    = _xl("Fact.Order.xlsx")
+    purchase = _xl("Fact.Purchase.xlsx")
+    stock_h  = _xl("Fact.Stock Holding.xlsx")
+    movement = _xl("Fact.Movement.xlsx")
+    txn      = pd.read_csv(os.path.join(FACT_DIR, "Fact.Transaction.csv"))
     return {
         "sale": sale, "order": order, "purchase": purchase,
         "stock_holding": stock_h, "movement": movement, "transaction": txn,
@@ -56,15 +61,11 @@ def load_facts():
 # ── enriched / joined mart tables ─────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
 def mart_sales():
-    """Sales fact enriched with Date, Customer, Stock, City, Employee dims."""
     dims  = load_dimensions()
     facts = load_facts()
 
     sale = facts["sale"].copy()
-
-    # parse date key
-    sale["Invoice Date Key"] = pd.to_datetime(
-        sale["Invoice Date Key"], errors="coerce")
+    sale["Invoice Date Key"] = pd.to_datetime(sale["Invoice Date Key"], errors="coerce")
 
     date_df = dims["date"][["Date","Calendar Year","Calendar Month Number",
                              "Short Month","Fiscal Year","ISO Week Number"]].copy()
@@ -85,7 +86,6 @@ def mart_sales():
                       "Country","Sales Territory"]],
         on="City Key", how="left")
 
-    # margin
     sale["Margin"] = sale["Profit"]
     sale["Margin %"] = np.where(
         sale["Total Excluding Tax"] > 0,
@@ -96,7 +96,6 @@ def mart_sales():
 
 @st.cache_data(show_spinner=False)
 def mart_inventory():
-    """Stock holding enriched with Stock Item dim."""
     dims  = load_dimensions()
     facts = load_facts()
 
@@ -107,19 +106,18 @@ def mart_inventory():
                        "Cost Price","Lead Time Days","Availability"]],
         on="Stock Item Key", how="left")
 
-    sh["Stock Value"]       = sh["Quantity On Hand"] * sh["Cost Price"]
-    sh["Days of Supply"]    = np.where(sh["Reorder Level"] > 0,
-                                       sh["Quantity On Hand"] / sh["Reorder Level"], np.nan)
-    sh["Reorder Flag"]      = sh["Quantity On Hand"] <= sh["Reorder Level"]
-    sh["Overstock Flag"]    = sh["Quantity On Hand"] > sh["Target Stock Level"]
-    sh["Stockout Risk"]     = (sh["Quantity On Hand"] / sh["Target Stock Level"].replace(0,np.nan)).fillna(0)
+    sh["Stock Value"]    = sh["Quantity On Hand"] * sh["Cost Price"]
+    sh["Days of Supply"] = np.where(sh["Reorder Level"] > 0,
+                                    sh["Quantity On Hand"] / sh["Reorder Level"], np.nan)
+    sh["Reorder Flag"]   = sh["Quantity On Hand"] <= sh["Reorder Level"]
+    sh["Overstock Flag"] = sh["Quantity On Hand"] > sh["Target Stock Level"]
+    sh["Stockout Risk"]  = (sh["Quantity On Hand"] / sh["Target Stock Level"].replace(0, np.nan)).fillna(0)
 
     return sh
 
 
 @st.cache_data(show_spinner=False)
 def mart_purchase():
-    """Purchase fact enriched with Supplier and Stock dims."""
     dims  = load_dimensions()
     facts = load_facts()
 
@@ -135,10 +133,10 @@ def mart_purchase():
         dims["stock"][["Stock Item Key","Stock Item","Stock Category","Subcategory","Cost Price"]],
         on="Stock Item Key", how="left")
 
-    pur["Fulfillment Rate"]   = np.where(
+    pur["Fulfillment Rate"] = np.where(
         pur["Ordered Outers"] > 0,
         pur["Received Outers"] / pur["Ordered Outers"] * 100, np.nan)
-    pur["Purchase Value"]     = pur["Received Outers"] * pur["Cost Price"].fillna(0)
+    pur["Purchase Value"] = pur["Received Outers"] * pur["Cost Price"].fillna(0)
     pur["Year"]  = pur["Date Key"].dt.year
     pur["Month"] = pur["Date Key"].dt.month
 
@@ -147,7 +145,6 @@ def mart_purchase():
 
 @st.cache_data(show_spinner=False)
 def mart_movement():
-    """Stock movement enriched with Date, Stock, Supplier, Customer dims."""
     dims  = load_dimensions()
     facts = load_facts()
 
@@ -156,7 +153,7 @@ def mart_movement():
 
     date_df = dims["date"][["Date","Calendar Year","Calendar Month Number",
                              "Short Month","ISO Week Number"]].copy()
-    date_df = date_df.rename(columns={"Date":"Date Key"})
+    date_df = date_df.rename(columns={"Date": "Date Key"})
 
     mv = mv.merge(date_df, on="Date Key", how="left")
     mv = mv.merge(
