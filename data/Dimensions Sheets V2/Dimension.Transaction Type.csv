@@ -1,0 +1,15 @@
+Transaction Type Key,Transaction Type,Transaction_Direction,Counterparty_Type,Ledger_Impact,Approval_Required,VAT_Applicable,Revenue_Impact,Reporting_Category,Avg_Processing_Days
+1,Customer Invoice,Inflow,Customer,Debit,No,Yes,Positive,Accounts Receivable,1
+2,Customer Credit Note,Outflow,Customer,Credit,No,Yes,Negative,Accounts Receivable,3
+3,Customer Payment Received,Inflow,Customer,Debit,No,Yes,Non-Revenue,Accounts Receivable,1
+4,Customer Refund,Outflow,Customer,Credit,Yes,Yes,Negative,Accounts Receivable,5
+5,Supplier Invoice,Neutral,Supplier,Debit,No,Yes,Cost,Accounts Payable,1
+6,Supplier Credit Note,Outflow,Supplier,Credit,No,Yes,Cost,Accounts Payable,3
+7,Supplier Payment Issued,Outflow,Supplier,Credit,Yes,Yes,Cost,Accounts Payable,2
+8,Supplier Refund,Outflow,Supplier,Credit,Yes,Yes,Cost,Accounts Payable,5
+9,Stock Transfer,Internal,Internal,Adjustment,No,No,Non-Revenue,Inventory,1
+10,Stock Issue,Internal,Internal,Adjustment,No,No,Non-Revenue,Inventory,1
+11,Stock Receipt,Internal,Internal,Adjustment,No,No,Non-Revenue,Inventory,1
+12,Stock Adjustment at Stocktake,Internal,Internal,Adjustment,Yes,No,Non-Revenue,Inventory,2
+13,Contra,Neutral,Internal,Adjustment,Yes,No,Non-Revenue,General Ledger,1
+14,Customer Contra,Neutral,Customer,Adjustment,Yes,No,Non-Revenue,Accounts Receivable,1

@@ -1,0 +1,5 @@
+Payment Method Key,Payment Method,Processing Fee (%),Avg Clearance (Days),Risk_Level,Payment_Category,Acceptance_Region,Fraud_Risk_Score,Clearance_Speed,Digital_Payment_Flag,Chargeback_Eligible,Compliance_Status
+1,Credit Card,1.75,1,Medium,Card,Global,Medium,Instant,Yes,Yes,PCI-DSS
+2,Cash,0.57,3,Low,Cash,Domestic,Low,Delayed,No,No,Standard
+3,Check,2.81,3,High,Paper,Domestic,High,Delayed,No,Partial,Standard
+4,EFT,2.65,2,High,Electronic,Regional,Low,Standard,Yes,Partial,ISO-20022

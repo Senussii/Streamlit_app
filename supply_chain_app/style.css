@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+html, body, [class*="css"]  { font-family: 'Inter', sans-serif; }
+.main { background-color: #0E1117; }
+
+/* sidebar */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg,#0E1117 0%,#161B22 100%);
+    border-right: 1px solid #30363D;
+}
+
+/* metric cards */
+.metric-card {
+    background: linear-gradient(135deg,#161B22 0%,#1C2333 100%);
+    border: 1px solid #30363D;
+    border-radius: 12px;
+    padding: 18px 22px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.metric-card::before {
+    content: "";
+    position: absolute; top:0; left:0; right:0; height:3px;
+    background: linear-gradient(90deg,#00D4FF,#7B2FBE);
+}
+.metric-value { font-size: 2rem; font-weight:700; color:#00D4FF; }
+.metric-label { font-size: 0.8rem; color:#8B949E; margin-top:4px; }
+.metric-delta { font-size:0.85rem; margin-top:6px; }
+.delta-pos { color:#00C49A; }
+.delta-neg { color:#FF4C6E; }
+
+/* section headers */
+.section-header {
+    background: linear-gradient(90deg,rgba(0,212,255,0.1),transparent);
+    border-left: 3px solid #00D4FF;
+    padding: 8px 16px; border-radius:0 8px 8px 0;
+    margin-bottom:16px;
+}
+.section-header h3 { color:#00D4FF !important; margin:0; font-size:1.1rem; }
+
+/* badges */
+.badge {
+    display:inline-block; padding:3px 10px; border-radius:20px;
+    font-size:0.75rem; font-weight:600;
+}
+.badge-high   { background:#FF4C6E22; color:#FF4C6E; border:1px solid #FF4C6E44; }
+.badge-medium { background:#FFD70022; color:#FFD700; border:1px solid #FFD70044; }
+.badge-low    { background:#00C49A22; color:#00C49A; border:1px solid #00C49A44; }
+
+/* tables */
+[data-testid="stDataFrame"] { border-radius:8px; overflow:hidden; }
+
+/* progress bars in sidebar */
+.stProgress > div > div { background:#00D4FF; }
+
+/* tabs */
+[data-baseweb="tab-list"] { background:#161B22; border-radius:8px; }
+[data-baseweb="tab"] { color:#8B949E !important; }
+[aria-selected="true"] { color:#00D4FF !important; border-bottom-color:#00D4FF !important; }

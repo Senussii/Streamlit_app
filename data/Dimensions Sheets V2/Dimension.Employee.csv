@@ -1,0 +1,213 @@
+Employee Key,Employee,Is Salesperson,Department,Sales Target,Territory,Manager ID,Branch,Employee Level,Performance Grade
+1,Lily Code,False,Finance,0,Southwest,45,East Branch,Junior,Grade C
+2,Isabella Rupp,False,Finance,0,Great Lakes,10,South Branch,Junior,Grade A
+3,Ethan Onslow,True,Corporate Sales,1606617,Southeast,11,Main Office,Director,Grade A
+4,Amy Trefl,False,Logistics,0,Mideast,45,Main Office,Manager,Grade C
+5,Jai Shand,True,Retail Sales,535537,Southwest,10,North Branch,Junior,Grade A
+6,Anthony Grosse,False,IT,0,Great Lakes,32,North Branch,Senior,Grade B
+7,Taj Shand,False,HR,0,New England,10,West Branch,Director,Grade A
+8,Hudson Hollinworth,False,HR,0,Southeast,45,South Branch,Junior,Grade C
+9,Jack Potter,False,IT,0,Plains,10,Main Office,Junior,Grade C
+10,Piper Koch,False,HR,0,Rocky Mountain,10,West Branch,Director,Grade C
+11,Hudson Onslow,False,Logistics,0,Plains,45,North Branch,Director,Grade C
+12,Sophia Hinton,True,Corporate Sales,1071074,Mideast,32,West Branch,Director,Grade C
+13,Henry Forlonge,False,Operations,0,New England,11,Main Office,Junior,Grade B
+14,Stella Rosenhain,False,IT,0,New England,10,West Branch,Manager,Grade B
+15,Kayla Woodcock,False,Logistics,0,Far West,45,South Branch,Manager,Grade B
+16,Katie Darwin,False,HR,0,Far West,10,Main Office,Senior,Grade C
+17,Alica Fatnowna,True,Retail Sales,535537,Great Lakes,11,North Branch,Junior,Grade A
+18,Eva Muirden,True,Retail Sales,1606612,Far West,10,Main Office,Director,Grade A
+19,Archer Lamble,False,IT,0,Far West,10,West Branch,Junior,Grade C
+20,Isabella Rupp,True,Retail Sales,357025,Plains,10,Main Office,Junior,Grade C
+21,Lily Code,False,Logistics,0,New England,11,South Branch,Director,Grade A
+22,Ethan Onslow,False,IT,0,Southeast,11,Main Office,Senior,Grade B
+23,Amy Trefl,False,Operations,0,Rocky Mountain,10,East Branch,Junior,Grade A
+24,Jai Shand,True,Retail Sales,446281,External,32,North Branch,Junior,Grade B
+25,Anthony Grosse,False,Operations,0,Rocky Mountain,32,Main Office,Director,Grade B
+26,Taj Shand,True,Corporate Sales,535537,Far West,11,Main Office,Senior,Grade C
+27,Hudson Hollinworth,False,Logistics,0,Great Lakes,45,East Branch,Director,Grade C
+28,Jack Potter,True,Retail Sales,1606612,Mideast,32,South Branch,Director,Grade A
+29,Taj Shand,False,Logistics,0,Southwest,32,North Branch,Senior,Grade A
+30,Hudson Hollinworth,False,Logistics,0,Great Lakes,11,Main Office,Director,Grade A
+31,Lily Code,True,Corporate Sales,1071074,New England,11,Main Office,Manager,Grade A
+32,Piper Koch,False,Finance,0,Great Lakes,32,West Branch,Senior,Grade A
+33,Jai Shand,False,Operations,0,Mideast,10,East Branch,Junior,Grade B
+34,Ethan Onslow,False,IT,0,Southwest,45,East Branch,Senior,Grade C
+35,Amy Trefl,False,HR,0,Mideast,11,South Branch,Director,Grade C
+36,Taj Shand,False,Finance,0,External,45,East Branch,Senior,Grade A
+37,Ethan Onslow,False,IT,0,New England,11,West Branch,Senior,Grade C
+38,Hudson Onslow,False,HR,0,Great Lakes,45,South Branch,Junior,Grade A
+39,Jack Potter,False,HR,0,Rocky Mountain,32,North Branch,Junior,Grade C
+40,Hudson Hollinworth,False,Logistics,0,New England,10,Main Office,Senior,Grade C
+41,Sophia Hinton,False,Operations,0,Plains,32,Main Office,Senior,Grade A
+42,Henry Forlonge,False,Logistics,0,Southwest,11,Main Office,Manager,Grade A
+43,Stella Rosenhain,True,Retail Sales,535537,New England,10,Main Office,Junior,Grade A
+44,Jai Shand,True,Retail Sales,446281,Southwest,32,South Branch,Junior,Grade B
+45,Lily Code,True,Retail Sales,1071074,New England,10,North Branch,Director,Grade C
+46,Anthony Grosse,False,IT,0,New England,10,West Branch,Director,Grade B
+47,Anthony Grosse,False,Finance,0,Rocky Mountain,32,North Branch,Manager,Grade B
+48,Lily Code,False,HR,0,Far West,11,West Branch,Junior,Grade B
+49,Hudson Onslow,False,IT,0,Southwest,11,South Branch,Manager,Grade C
+50,Amy Trefl,True,Retail Sales,669421,Rocky Mountain,11,East Branch,Senior,Grade B
+51,Amy Trefl,True,Retail Sales,446281,Great Lakes,11,South Branch,Junior,Grade B
+52,Sophia Hinton,False,Operations,0,Great Lakes,10,West Branch,Manager,Grade A
+53,Jai Shand,True,Retail Sales,1071074,Great Lakes,11,Main Office,Director,Grade C
+54,Kayla Woodcock,True,Retail Sales,669421,Plains,45,East Branch,Senior,Grade B
+55,Isabella Rupp,False,Finance,0,External,10,Main Office,Manager,Grade B
+56,Lily Code,False,IT,0,External,32,North Branch,Manager,Grade C
+57,Anthony Grosse,False,Finance,0,Mideast,32,South Branch,Junior,Grade B
+58,Lily Code,False,Finance,0,Southwest,32,South Branch,Director,Grade B
+59,Piper Koch,False,Logistics,0,Plains,32,West Branch,Junior,Grade C
+60,Jai Shand,True,Retail Sales,803306,Far West,32,East Branch,Senior,Grade A
+61,Lily Code,False,IT,0,Southeast,45,West Branch,Manager,Grade A
+62,Anthony Grosse,False,Logistics,0,Plains,32,South Branch,Junior,Grade A
+63,Kayla Woodcock,True,Corporate Sales,1606612,External,11,North Branch,Director,Grade A
+64,Jai Shand,False,Logistics,0,External,11,West Branch,Director,Grade C
+65,Amy Trefl,True,Corporate Sales,669421,Southeast,32,West Branch,Senior,Grade B
+66,Stella Rosenhain,False,IT,0,Plains,45,South Branch,Director,Grade B
+67,Ethan Onslow,False,HR,0,Rocky Mountain,10,West Branch,Manager,Grade B
+68,Hudson Hollinworth,False,Logistics,0,Far West,45,North Branch,Junior,Grade A
+69,Jai Shand,True,Corporate Sales,669421,Plains,10,South Branch,Senior,Grade B
+70,Sophia Hinton,False,Operations,0,Southeast,32,North Branch,Junior,Grade C
+71,Henry Forlonge,False,Finance,0,Great Lakes,11,West Branch,Director,Grade B
+72,Lily Code,False,Finance,0,New England,11,West Branch,Manager,Grade A
+73,Stella Rosenhain,False,Logistics,0,Great Lakes,10,South Branch,Junior,Grade A
+74,Taj Shand,False,Operations,0,Far West,11,South Branch,Manager,Grade B
+75,Piper Koch,False,Logistics,0,External,45,Main Office,Manager,Grade A
+76,Lily Code,False,Operations,0,New England,45,South Branch,Senior,Grade A
+77,Hudson Hollinworth,True,Retail Sales,892562,Great Lakes,32,South Branch,Manager,Grade B
+78,Amy Trefl,False,Finance,0,Southwest,10,South Branch,Manager,Grade C
+79,Ethan Onslow,False,Finance,0,External,10,North Branch,Senior,Grade A
+80,Hudson Onslow,True,Corporate Sales,1338843,Great Lakes,32,North Branch,Director,Grade B
+81,Kayla Woodcock,False,IT,0,Great Lakes,32,West Branch,Senior,Grade C
+82,Katie Darwin,True,Corporate Sales,535537,New England,10,North Branch,Junior,Grade A
+83,Amy Trefl,False,Operations,0,External,45,South Branch,Manager,Grade A
+84,Anthony Grosse,True,Corporate Sales,803306,Rocky Mountain,32,North Branch,Senior,Grade A
+85,Hudson Hollinworth,False,Operations,0,External,45,Main Office,Senior,Grade C
+86,Lily Code,False,IT,0,Mideast,10,South Branch,Senior,Grade A
+87,Ethan Onslow,True,Retail Sales,714050,Plains,32,East Branch,Manager,Grade C
+88,Isabella Rupp,False,HR,0,External,45,West Branch,Senior,Grade A
+89,Sophia Hinton,True,Retail Sales,803306,Great Lakes,10,Main Office,Senior,Grade A
+90,Hudson Hollinworth,True,Corporate Sales,1338843,Mideast,10,Main Office,Director,Grade B
+91,Hudson Onslow,True,Retail Sales,1338843,Southeast,10,East Branch,Director,Grade B
+92,Alica Fatnowna,False,Logistics,0,Rocky Mountain,11,North Branch,Senior,Grade B
+93,Sophia Hinton,False,Finance,0,Far West,10,South Branch,Senior,Grade A
+94,Anthony Grosse,False,IT,0,Rocky Mountain,10,East Branch,Junior,Grade C
+95,Anthony Grosse,False,Operations,0,Southwest,45,East Branch,Senior,Grade A
+96,Taj Shand,False,IT,0,New England,11,Main Office,Junior,Grade A
+97,Taj Shand,False,HR,0,Great Lakes,45,North Branch,Director,Grade A
+98,Stella Rosenhain,True,Corporate Sales,535537,Plains,10,North Branch,Senior,Grade C
+99,Piper Koch,False,Finance,0,Mideast,45,Main Office,Manager,Grade A
+100,Stella Rosenhain,True,Retail Sales,892562,Mideast,10,West Branch,Manager,Grade B
+101,Hudson Onslow,True,Retail Sales,535537,Southeast,11,Main Office,Senior,Grade C
+102,Jack Potter,False,Logistics,0,Southeast,10,Main Office,Manager,Grade A
+103,Amy Trefl,True,Corporate Sales,535537,Southeast,32,West Branch,Senior,Grade C
+104,Jai Shand,False,IT,0,New England,45,East Branch,Junior,Grade C
+105,Hudson Onslow,False,HR,0,Far West,45,North Branch,Junior,Grade C
+106,Anthony Grosse,False,Operations,0,Rocky Mountain,32,West Branch,Manager,Grade B
+107,Taj Shand,True,Corporate Sales,1338843,Plains,10,West Branch,Director,Grade B
+108,Amy Trefl,False,IT,0,New England,32,North Branch,Junior,Grade B
+109,Piper Koch,False,Finance,0,Mideast,45,Main Office,Junior,Grade C
+110,Stella Rosenhain,False,Operations,0,Far West,45,South Branch,Senior,Grade A
+111,Jai Shand,True,Corporate Sales,357025,Mideast,32,West Branch,Junior,Grade C
+112,Alica Fatnowna,True,Corporate Sales,1071074,Mideast,32,West Branch,Manager,Grade A
+113,Henry Forlonge,False,Finance,0,External,10,South Branch,Junior,Grade B
+114,Jai Shand,False,HR,0,Far West,32,West Branch,Senior,Grade C
+115,Taj Shand,True,Retail Sales,1071074,Southeast,32,Main Office,Director,Grade C
+116,Kayla Woodcock,False,HR,0,Mideast,10,South Branch,Manager,Grade A
+117,Katie Darwin,False,HR,0,Great Lakes,11,Main Office,Manager,Grade C
+118,Taj Shand,False,Finance,0,Plains,45,Main Office,Manager,Grade A
+119,Anthony Grosse,True,Corporate Sales,1338843,Far West,45,Main Office,Director,Grade B
+120,Stella Rosenhain,False,HR,0,Mideast,45,Main Office,Director,Grade A
+121,Alica Fatnowna,True,Retail Sales,1071074,Rocky Mountain,32,South Branch,Director,Grade C
+122,Lily Code,False,Logistics,0,Far West,45,South Branch,Junior,Grade B
+123,Stella Rosenhain,False,IT,0,Southeast,45,West Branch,Junior,Grade B
+124,Katie Darwin,False,Logistics,0,Mideast,32,North Branch,Manager,Grade B
+125,Isabella Rupp,False,Logistics,0,Great Lakes,32,North Branch,Senior,Grade A
+126,Lily Code,False,IT,0,Far West,45,North Branch,Manager,Grade B
+127,Sophia Hinton,True,Retail Sales,714050,Far West,10,North Branch,Manager,Grade C
+128,Alica Fatnowna,False,HR,0,Great Lakes,10,East Branch,Senior,Grade A
+129,Taj Shand,False,Finance,0,Far West,32,Main Office,Manager,Grade A
+130,Hudson Hollinworth,False,Operations,0,Great Lakes,45,West Branch,Junior,Grade B
+131,Jai Shand,True,Corporate Sales,446281,Rocky Mountain,10,South Branch,Junior,Grade B
+132,Henry Forlonge,False,IT,0,External,11,West Branch,Senior,Grade A
+133,Isabella Rupp,False,Operations,0,New England,32,East Branch,Director,Grade C
+134,Hudson Hollinworth,False,IT,0,Southeast,45,East Branch,Director,Grade C
+135,Alica Fatnowna,False,Logistics,0,Rocky Mountain,45,South Branch,Senior,Grade C
+136,Jack Potter,False,Operations,0,New England,11,West Branch,Director,Grade B
+137,Jai Shand,True,Retail Sales,446281,Great Lakes,10,East Branch,Junior,Grade B
+138,Jack Potter,False,HR,0,External,11,North Branch,Manager,Grade A
+139,Alica Fatnowna,False,Logistics,0,Southwest,45,Main Office,Manager,Grade A
+140,Lily Code,False,Operations,0,Southwest,45,North Branch,Director,Grade B
+141,Jai Shand,False,Operations,0,Great Lakes,45,West Branch,Manager,Grade B
+142,Isabella Rupp,False,Finance,0,Mideast,10,East Branch,Senior,Grade B
+143,Kayla Woodcock,False,HR,0,Plains,11,South Branch,Junior,Grade A
+144,Jack Potter,True,Corporate Sales,714050,Southwest,11,East Branch,Manager,Grade C
+145,Hudson Onslow,False,Operations,0,Great Lakes,32,South Branch,Junior,Grade C
+146,Piper Koch,True,Corporate Sales,1071074,New England,45,South Branch,Director,Grade C
+147,Piper Koch,False,Logistics,0,Mideast,45,South Branch,Manager,Grade A
+148,Ethan Onslow,False,Finance,0,Plains,32,Main Office,Director,Grade C
+149,Jack Potter,False,Finance,0,Southwest,32,East Branch,Manager,Grade C
+150,Jack Potter,False,IT,0,External,11,South Branch,Manager,Grade B
+151,Hudson Hollinworth,False,IT,0,Great Lakes,11,Main Office,Manager,Grade C
+152,Lily Code,True,Corporate Sales,803306,Great Lakes,45,West Branch,Senior,Grade A
+153,Ethan Onslow,False,Operations,0,New England,45,East Branch,Junior,Grade A
+154,Sophia Hinton,False,Operations,0,New England,45,East Branch,Senior,Grade A
+155,Amy Trefl,False,Logistics,0,Southwest,32,North Branch,Senior,Grade C
+156,Hudson Onslow,False,Operations,0,Mideast,32,West Branch,Junior,Grade B
+157,Jai Shand,True,Retail Sales,535537,Southeast,10,North Branch,Junior,Grade A
+158,Anthony Grosse,False,HR,0,Plains,10,North Branch,Junior,Grade A
+159,Ethan Onslow,True,Retail Sales,1338843,Rocky Mountain,45,North Branch,Director,Grade B
+160,Ethan Onslow,False,HR,0,New England,10,South Branch,Director,Grade A
+161,Sophia Hinton,False,Finance,0,Southwest,11,West Branch,Director,Grade B
+162,Hudson Onslow,True,Retail Sales,892562,Mideast,10,West Branch,Manager,Grade B
+163,Hudson Onslow,False,IT,0,Southwest,32,East Branch,Senior,Grade B
+164,Ethan Onslow,False,Logistics,0,Far West,11,East Branch,Junior,Grade C
+165,Taj Shand,False,HR,0,Mideast,45,East Branch,Director,Grade B
+166,Ethan Onslow,False,Operations,0,Far West,32,Main Office,Manager,Grade A
+167,Hudson Hollinworth,False,HR,0,Mideast,32,South Branch,Manager,Grade C
+168,Jack Potter,True,Retail Sales,892562,Rocky Mountain,45,Main Office,Manager,Grade B
+169,Alica Fatnowna,False,Operations,0,Plains,32,Main Office,Director,Grade C
+170,Amy Trefl,False,Logistics,0,Plains,10,Main Office,Manager,Grade C
+171,Kayla Woodcock,False,Finance,0,Southeast,45,West Branch,Manager,Grade B
+172,Hudson Hollinworth,True,Retail Sales,803306,Far West,45,South Branch,Senior,Grade A
+173,Stella Rosenhain,True,Retail Sales,1606612,Plains,45,North Branch,Director,Grade A
+174,Lily Code,True,Retail Sales,1071074,Far West,32,South Branch,Director,Grade C
+175,Jack Potter,False,HR,0,Plains,32,Main Office,Junior,Grade B
+176,Jai Shand,True,Retail Sales,669421,New England,11,West Branch,Senior,Grade B
+177,Katie Darwin,False,Finance,0,Far West,11,South Branch,Director,Grade B
+178,Piper Koch,False,Finance,0,Mideast,11,Main Office,Manager,Grade B
+179,Archer Lamble,True,Corporate Sales,669421,External,45,Main Office,Senior,Grade B
+180,Taj Shand,False,IT,0,Far West,11,East Branch,Senior,Grade B
+181,Lily Code,False,Finance,0,Far West,11,North Branch,Director,Grade B
+182,Hudson Hollinworth,False,IT,0,Southeast,45,West Branch,Director,Grade B
+183,Henry Forlonge,True,Corporate Sales,1071074,Mideast,11,West Branch,Director,Grade C
+184,Ethan Onslow,False,Logistics,0,Far West,32,South Branch,Director,Grade B
+185,Stella Rosenhain,False,Logistics,0,Great Lakes,32,North Branch,Junior,Grade A
+186,Alica Fatnowna,False,Finance,0,New England,10,West Branch,Director,Grade B
+187,Anthony Grosse,False,HR,0,Far West,45,West Branch,Senior,Grade C
+188,Amy Trefl,False,HR,0,Great Lakes,45,North Branch,Director,Grade A
+189,Sophia Hinton,True,Retail Sales,1071074,External,11,East Branch,Director,Grade C
+190,Eva Muirden,False,Operations,0,Far West,10,East Branch,Director,Grade A
+191,Isabella Rupp,True,Retail Sales,669421,Southwest,45,West Branch,Senior,Grade B
+192,Hudson Onslow,False,Operations,0,External,10,North Branch,Director,Grade A
+193,Kayla Woodcock,False,IT,0,Southeast,10,North Branch,Manager,Grade B
+194,Kayla Woodcock,False,IT,0,Southeast,10,East Branch,Junior,Grade A
+195,Hudson Onslow,False,HR,0,Plains,11,West Branch,Senior,Grade A
+196,Isabella Rupp,True,Retail Sales,535537,Far West,11,Main Office,Senior,Grade C
+197,Eva Muirden,False,Operations,0,Rocky Mountain,32,South Branch,Senior,Grade C
+198,Sophia Hinton,True,Retail Sales,1071074,New England,11,East Branch,Director,Grade C
+199,Amy Trefl,False,Finance,0,Plains,45,West Branch,Junior,Grade B
+200,Anthony Grosse,False,IT,0,Mideast,32,East Branch,Manager,Grade A
+201,Alica Fatnowna,True,Corporate Sales,357025,Plains,11,South Branch,Junior,Grade C
+202,Stella Rosenhain,False,Logistics,0,Mideast,45,West Branch,Manager,Grade A
+203,Ethan Onslow,False,HR,0,New England,32,East Branch,Junior,Grade B
+204,Henry Forlonge,False,Finance,0,Great Lakes,10,North Branch,Director,Grade A
+205,Hudson Hollinworth,True,Corporate Sales,669421,Mideast,10,South Branch,Senior,Grade B
+206,Lily Code,False,Logistics,0,Far West,10,Main Office,Senior,Grade B
+207,Taj Shand,True,Retail Sales,803306,Rocky Mountain,45,West Branch,Senior,Grade A
+208,Archer Lamble,False,IT,0,Rocky Mountain,32,Main Office,Junior,Grade C
+209,Piper Koch,True,Retail Sales,535537,Southwest,10,Main Office,Junior,Grade A
+210,Katie Darwin,False,IT,0,Southeast,45,West Branch,Senior,Grade B
+211,Jai Shand,False,IT,0,Great Lakes,45,South Branch,Director,Grade A
+212,Jack Potter,False,Logistics,0,Great Lakes,11,South Branch,Senior,Grade C

@@ -1,0 +1,403 @@
+Customer Key,Customer,Bill To Customer,Category,Buying Group,Region,Customer Value Tier,Status,Payment Terms,Credit Limit,Primary Channel,Subcategory
+1,Tailspin Toys (Head Office),Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Southeast,Silver,Active,Net 30,5000,Wholesale,Hobbyist
+2,"Tailspin Toys (Sylvanite, MT)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southwest,Gold,Active,COD,5000,Retail,Gift Shop
+3,"Tailspin Toys (Peeples Valley, AZ)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,External,Platinum,Active,COD,25000,Online,Gift Shop
+4,"Tailspin Toys (Medicine Lodge, KS)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southeast,Gold,Active,COD,50000,Online,Gift Shop
+5,"Tailspin Toys (Gasport, NY)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Great Lakes,Gold,Active,COD,25000,Wholesale,Gift Shop
+6,"Tailspin Toys (Jessie, ND)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,External,Gold,Active,Net 60,50000,Online,Gift Shop
+7,"Tailspin Toys (Frankewing, TN)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Gold,Active,COD,10000,Retail,Gift Shop
+8,"Tailspin Toys (Bow Mar, CO)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Great Lakes,Silver,Active,Net 60,10000,Online,Gift Shop
+9,"Tailspin Toys (Netcong, NJ)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Gold,Active,Net 60,100000,Retail,General Retail
+10,"Tailspin Toys (Wimbledon, ND)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Mideast,Silver,Active,Net 15,50000,Online,Hobbyist
+11,"Tailspin Toys (Devault, PA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Rocky Mountain,Bronze,Inactive,Net 60,100000,Wholesale,General Retail
+12,"Tailspin Toys (Biscay, MN)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,New England,Silver,Active,Net 30,5000,Retail,Gift Shop
+13,"Tailspin Toys (Stonefort, IL)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,External,Silver,Inactive,Net 60,50000,Online,General Retail
+14,"Tailspin Toys (Long Meadow, MD)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Gold,Active,Net 15,25000,Online,Gift Shop
+15,"Tailspin Toys (Batson, TX)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,New England,Gold,Active,Net 60,5000,Online,General Retail
+16,"Tailspin Toys (Coney Island, MO)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,New England,Platinum,Active,Net 30,5000,Retail,Gift Shop
+17,"Tailspin Toys (East Fultonham, OH)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Rocky Mountain,Gold,Inactive,Net 30,25000,Retail,Hobbyist
+18,"Tailspin Toys (Goffstown, NH)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,External,Gold,Active,Net 30,5000,Retail,General Retail
+19,"Tailspin Toys (Lemeta, AK)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Far West,Gold,Active,Net 15,50000,Wholesale,Hobbyist
+20,"Tailspin Toys (College Place, WA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Plains,Platinum,Active,Net 15,100000,Wholesale,General Retail
+21,"Tailspin Toys (Tresckow, PA)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Far West,Gold,Active,COD,5000,Retail,Hobbyist
+22,"Tailspin Toys (Ward Ridge, FL)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,Plains,Silver,Active,Net 15,50000,Online,General Retail
+23,"Tailspin Toys (Ikatan, AK)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Gold,Active,Net 30,10000,Wholesale,General Retail
+24,"Tailspin Toys (Dundarrach, NC)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Rocky Mountain,Silver,Active,Net 30,50000,Retail,General Retail
+25,"Tailspin Toys (Avenal, CA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Rocky Mountain,Silver,Active,Net 15,100000,Online,General Retail
+26,"Tailspin Toys (Hedrick, IA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Plains,Silver,Inactive,Net 60,50000,Wholesale,General Retail
+27,"Tailspin Toys (Bowlus, MN)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Plains,Platinum,Inactive,Net 15,25000,Online,General Retail
+28,"Tailspin Toys (North Ridge, NY)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Mideast,Bronze,Active,Net 15,100000,Online,General Retail
+29,"Tailspin Toys (Eulaton, AL)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southwest,Silver,Active,Net 30,10000,Online,Gift Shop
+30,"Tailspin Toys (Koontzville, WA)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Platinum,Inactive,COD,25000,Online,Gift Shop
+31,"Tailspin Toys (Lake Stevens, WA)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,External,Bronze,Active,Net 30,50000,Wholesale,Gift Shop
+32,"Tailspin Toys (Maypearl, TX)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,New England,Bronze,Active,COD,100000,Wholesale,Gift Shop
+33,"Tailspin Toys (Boyden Arbor, SC)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southwest,Platinum,Inactive,Net 30,10000,Wholesale,Gift Shop
+34,"Tailspin Toys (Dallardsville, TX)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Mideast,Gold,Active,Net 15,25000,Retail,General Retail
+35,"Tailspin Toys (Slanesville, WV)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,New England,Bronze,Active,Net 30,10000,Wholesale,Gift Shop
+36,"Tailspin Toys (Ekron, KY)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Southeast,Bronze,Active,Net 30,50000,Online,Hobbyist
+37,"Tailspin Toys (Kerby, OR)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southwest,Gold,Inactive,Net 30,10000,Wholesale,Gift Shop
+38,"Tailspin Toys (Airport Drive, MO)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Rocky Mountain,Gold,Inactive,Net 15,5000,Online,Gift Shop
+39,"Tailspin Toys (Diablock, KY)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,External,Silver,Inactive,Net 15,25000,Retail,Hobbyist
+40,"Tailspin Toys (Impact, TX)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Silver,Active,Net 15,10000,Online,General Retail
+41,"Tailspin Toys (Olivette, MO)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Great Lakes,Silver,Inactive,Net 15,50000,Online,Gift Shop
+42,"Tailspin Toys (Arietta, NY)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Great Lakes,Silver,Active,COD,50000,Online,Hobbyist
+43,"Tailspin Toys (Upper Preston, WA)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Mideast,Silver,Active,COD,10000,Retail,Hobbyist
+44,"Tailspin Toys (Amanda Park, WA)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Great Lakes,Bronze,Active,Net 60,50000,Wholesale,Gift Shop
+45,"Tailspin Toys (Severna Park, MD)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,New England,Platinum,Active,Net 15,100000,Wholesale,Gift Shop
+46,"Tailspin Toys (Jemison, AL)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,External,Gold,Active,COD,100000,Retail,General Retail
+47,"Tailspin Toys (Lake Hughes, CA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Plains,Bronze,Active,Net 30,100000,Online,General Retail
+48,"Tailspin Toys (Trentwood, WA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,New England,Bronze,Active,Net 15,5000,Wholesale,General Retail
+49,"Tailspin Toys (Muir, MI)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Rocky Mountain,Silver,Active,Net 60,10000,Retail,Hobbyist
+50,"Tailspin Toys (Hambleton, WV)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southeast,Silver,Active,Net 60,5000,Wholesale,Gift Shop
+51,"Tailspin Toys (Imlaystown, NJ)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Rocky Mountain,Gold,Active,Net 60,50000,Retail,General Retail
+52,"Tailspin Toys (Idria, CA)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Great Lakes,Silver,Active,Net 30,5000,Online,Gift Shop
+53,"Tailspin Toys (Nanafalia, AL)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Rocky Mountain,Silver,Active,COD,50000,Wholesale,Hobbyist
+54,"Tailspin Toys (Railroad, PA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,New England,Gold,Active,Net 30,50000,Retail,General Retail
+55,"Tailspin Toys (Gum Branch, GA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Gold,Active,Net 15,25000,Wholesale,General Retail
+56,"Tailspin Toys (Royal City, WA)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Silver,Active,Net 60,100000,Wholesale,Gift Shop
+57,"Tailspin Toys (Lakemore, OH)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southwest,Platinum,Active,Net 30,50000,Wholesale,Gift Shop
+58,"Tailspin Toys (Mappsburg, VA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Silver,Active,Net 30,25000,Wholesale,General Retail
+59,"Tailspin Toys (Edgartown, MA)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Far West,Gold,Inactive,COD,100000,Retail,Hobbyist
+60,"Tailspin Toys (East Dailey, WV)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southeast,Silver,Active,COD,50000,Online,General Retail
+61,"Tailspin Toys (Fairfield Glade, TN)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Gold,Active,Net 60,50000,Retail,Gift Shop
+62,"Tailspin Toys (Great Neck Estates, NY)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Southeast,Bronze,Active,Net 30,5000,Retail,Hobbyist
+63,"Tailspin Toys (Stallion Springs, CA)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southeast,Silver,Inactive,Net 30,5000,Retail,Gift Shop
+64,"Tailspin Toys (Hodgdon, ME)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,Rocky Mountain,Silver,Active,COD,100000,Online,General Retail
+65,"Tailspin Toys (North Cowden, TX)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Great Lakes,Bronze,Inactive,Net 30,50000,Wholesale,Gift Shop
+66,"Tailspin Toys (Madaket, MA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Silver,Active,Net 30,10000,Wholesale,General Retail
+67,"Tailspin Toys (Sentinel Butte, ND)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southwest,Platinum,Inactive,Net 30,5000,Wholesale,Gift Shop
+68,"Tailspin Toys (Gardere, LA)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,Southeast,Silver,Active,COD,100000,Online,General Retail
+69,"Tailspin Toys (Lytle Creek, CA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,External,Silver,Inactive,Net 60,50000,Wholesale,General Retail
+70,"Tailspin Toys (New Baden, IL)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Rocky Mountain,Bronze,Active,Net 15,50000,Online,Gift Shop
+71,"Tailspin Toys (Good Hart, MI)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Plains,Silver,Active,Net 60,10000,Wholesale,Gift Shop
+72,"Tailspin Toys (Cortaro, AZ)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Gold,Active,Net 15,100000,Wholesale,Gift Shop
+73,"Tailspin Toys (Cokato, MN)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Great Lakes,Gold,Active,Net 30,50000,Retail,Gift Shop
+74,"Tailspin Toys (Indios, PR)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,Rocky Mountain,Silver,Active,Net 60,5000,Online,General Retail
+75,"Tailspin Toys (Windsor Locks, CT)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Silver,Inactive,Net 15,10000,Retail,General Retail
+76,"Tailspin Toys (Yewed, OK)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Great Lakes,Silver,Inactive,COD,100000,Retail,Hobbyist
+77,"Tailspin Toys (Hahira, GA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Silver,Active,COD,10000,Retail,General Retail
+78,"Tailspin Toys (Sekiu, WA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southeast,Bronze,Active,Net 60,5000,Online,General Retail
+79,"Tailspin Toys (Page City, KS)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Silver,Active,Net 60,100000,Online,Gift Shop
+80,"Tailspin Toys (Valdese, NC)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southeast,Gold,Active,Net 30,10000,Wholesale,Gift Shop
+81,"Tailspin Toys (Big Moose, NY)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Great Lakes,Gold,Active,Net 60,25000,Retail,Hobbyist
+82,"Tailspin Toys (La Cueva, NM)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,New England,Gold,Active,Net 30,5000,Wholesale,General Retail
+83,"Tailspin Toys (Absecon, NJ)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,External,Gold,Active,Net 30,5000,Retail,Gift Shop
+84,"Tailspin Toys (Aceitunas, PR)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,New England,Gold,Active,COD,5000,Online,Gift Shop
+85,"Tailspin Toys (Andrix, CO)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,External,Gold,Active,COD,25000,Online,General Retail
+86,"Tailspin Toys (New Lexington, OH)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,External,Gold,Active,Net 15,25000,Online,General Retail
+87,"Tailspin Toys (Sauquoit, NY)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Gold,Active,COD,50000,Retail,Gift Shop
+88,"Tailspin Toys (Dracut, MA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,External,Bronze,Active,COD,10000,Online,General Retail
+89,"Tailspin Toys (Victory Gardens, NJ)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Great Lakes,Platinum,Inactive,Net 60,50000,Retail,Hobbyist
+90,"Tailspin Toys (Tolna, ND)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southeast,Silver,Active,COD,10000,Wholesale,Gift Shop
+91,"Tailspin Toys (Alstead, NH)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Plains,Silver,Active,Net 15,25000,Retail,Gift Shop
+92,"Tailspin Toys (Sans Souci, SC)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southeast,Bronze,Active,Net 60,25000,Wholesale,General Retail
+93,"Tailspin Toys (Clewiston, FL)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,Great Lakes,Gold,Active,Net 15,50000,Retail,General Retail
+94,"Tailspin Toys (Cheyenne Wells, CO)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,New England,Silver,Inactive,COD,100000,Wholesale,Gift Shop
+95,"Tailspin Toys (Lavon, TX)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Mideast,Bronze,Active,Net 15,50000,Online,General Retail
+96,"Tailspin Toys (South La Paloma, TX)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Bronze,Active,Net 60,10000,Wholesale,General Retail
+97,"Tailspin Toys (Manchester Center, VT)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Rocky Mountain,Bronze,Active,Net 30,50000,Online,General Retail
+98,"Tailspin Toys (El Centro, CA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Mideast,Gold,Inactive,Net 15,5000,Online,General Retail
+99,"Tailspin Toys (Guin, AL)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,External,Gold,Inactive,Net 15,10000,Wholesale,General Retail
+100,"Tailspin Toys (Tunnelhill, PA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,New England,Silver,Active,Net 60,10000,Retail,General Retail
+101,"Tailspin Toys (Cundiyo, NM)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Plains,Bronze,Active,Net 60,100000,Retail,General Retail
+102,"Tailspin Toys (Fieldbrook, CA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,External,Silver,Active,Net 15,25000,Retail,General Retail
+103,"Tailspin Toys (Kalvesta, KS)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Rocky Mountain,Silver,Inactive,COD,10000,Retail,General Retail
+104,"Tailspin Toys (Wallagrass, ME)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Great Lakes,Gold,Active,Net 15,25000,Retail,Hobbyist
+105,"Tailspin Toys (Tomnolen, MS)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,New England,Bronze,Inactive,Net 60,50000,Online,Gift Shop
+106,"Tailspin Toys (Tumacacori, AZ)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Plains,Gold,Active,Net 30,5000,Retail,Hobbyist
+107,"Tailspin Toys (Glen Avon, CA)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Plains,Silver,Active,Net 30,100000,Online,Hobbyist
+108,"Tailspin Toys (Bernie, MO)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Rocky Mountain,Silver,Active,COD,25000,Online,Gift Shop
+109,"Tailspin Toys (South Laguna, CA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Great Lakes,Silver,Active,Net 15,10000,Online,General Retail
+110,"Tailspin Toys (North Crows Nest, IN)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Rocky Mountain,Gold,Active,Net 30,25000,Wholesale,General Retail
+111,"Tailspin Toys (Oriole Beach, FL)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Great Lakes,Gold,Active,Net 15,10000,Wholesale,Gift Shop
+112,"Tailspin Toys (Sallyards, KS)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Far West,Silver,Active,Net 60,25000,Online,Gift Shop
+113,"Tailspin Toys (Dahlia, NM)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southeast,Gold,Active,Net 30,10000,Wholesale,Gift Shop
+114,"Tailspin Toys (Cherry Grove Beach, SC)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,New England,Silver,Active,COD,50000,Retail,Gift Shop
+115,"Tailspin Toys (Bethania, NC)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Rocky Mountain,Gold,Active,Net 60,10000,Retail,Hobbyist
+116,"Tailspin Toys (Rafael Capó, PR)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Great Lakes,Silver,Inactive,COD,10000,Online,Gift Shop
+117,"Tailspin Toys (Scofield, UT)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Great Lakes,Silver,Inactive,Net 60,5000,Retail,Hobbyist
+118,"Tailspin Toys (Vassalboro, ME)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Great Lakes,Platinum,Inactive,Net 30,10000,Online,General Retail
+119,"Tailspin Toys (Statenville, GA)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Southeast,Silver,Inactive,COD,5000,Online,Hobbyist
+120,"Tailspin Toys (Bratenahl, OH)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,External,Gold,Active,COD,100000,Retail,General Retail
+121,"Tailspin Toys (Elrosa, MN)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southwest,Platinum,Active,Net 60,5000,Wholesale,Gift Shop
+122,"Tailspin Toys (McClave, CO)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Great Lakes,Bronze,Active,COD,50000,Retail,General Retail
+123,"Tailspin Toys (Roe Park, NY)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Silver,Active,Net 60,5000,Retail,Gift Shop
+124,"Tailspin Toys (Hanoverton, OH)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Great Lakes,Bronze,Active,Net 60,100000,Online,General Retail
+125,"Tailspin Toys (Annamoriah, WV)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,New England,Gold,Active,Net 60,50000,Online,General Retail
+126,"Tailspin Toys (Francis Mills, NJ)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Silver,Active,Net 60,25000,Online,Gift Shop
+127,"Tailspin Toys (Point Roberts, WA)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Great Lakes,Bronze,Active,Net 30,25000,Online,Gift Shop
+128,"Tailspin Toys (East Portal, CO)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Rocky Mountain,Silver,Active,Net 60,5000,Wholesale,Hobbyist
+129,"Tailspin Toys (Mineral Hills, MI)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Plains,Silver,Active,Net 15,5000,Wholesale,Hobbyist
+130,"Tailspin Toys (Maple Shade, NJ)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Mideast,Silver,Active,COD,100000,Wholesale,General Retail
+131,"Tailspin Toys (Kwethluk, AK)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southeast,Silver,Active,Net 15,100000,Online,Gift Shop
+132,"Tailspin Toys (Minidoka, ID)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southeast,Bronze,Inactive,Net 30,10000,Online,General Retail
+133,"Tailspin Toys (Lake Erie Beach, NY)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southwest,Bronze,Active,Net 15,100000,Online,Gift Shop
+134,"Tailspin Toys (Tavares, FL)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,New England,Bronze,Active,COD,10000,Wholesale,Hobbyist
+135,"Tailspin Toys (Terre du Lac, MO)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,External,Gold,Inactive,Net 15,50000,Online,General Retail
+136,"Tailspin Toys (Mount Montgomery, NV)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Far West,Bronze,Inactive,Net 30,5000,Retail,Hobbyist
+137,"Tailspin Toys (Carbonville, UT)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Plains,Bronze,Inactive,Net 60,50000,Retail,Hobbyist
+138,"Tailspin Toys (Navassa, NC)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,New England,Gold,Active,Net 15,100000,Online,Gift Shop
+139,"Tailspin Toys (Hardeeville, SC)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Rocky Mountain,Platinum,Active,Net 30,50000,Retail,Hobbyist
+140,"Tailspin Toys (Furley, KS)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Mideast,Bronze,Active,Net 30,50000,Retail,Hobbyist
+141,"Tailspin Toys (Arrow Rock, MO)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southwest,Silver,Active,COD,50000,Wholesale,Gift Shop
+142,"Tailspin Toys (King Cove, AK)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Great Lakes,Bronze,Active,COD,100000,Online,Hobbyist
+143,"Tailspin Toys (Ashtabula, OH)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Plains,Gold,Active,Net 15,50000,Online,Gift Shop
+144,"Tailspin Toys (Larose, LA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southeast,Bronze,Active,Net 60,10000,Wholesale,General Retail
+145,"Tailspin Toys (Manahawkin, NJ)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Plains,Gold,Active,Net 30,100000,Retail,Hobbyist
+146,"Tailspin Toys (Belgreen, AL)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Gold,Active,Net 15,50000,Retail,General Retail
+147,"Tailspin Toys (Fishtail, MT)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,External,Gold,Active,Net 30,100000,Online,Gift Shop
+148,"Tailspin Toys (Baraboo, WI)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Great Lakes,Bronze,Active,Net 30,25000,Retail,General Retail
+149,"Tailspin Toys (Inguadona, MN)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Mideast,Silver,Active,Net 60,10000,Wholesale,General Retail
+150,"Tailspin Toys (Corfu, NY)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,Southeast,Silver,Active,Net 60,50000,Wholesale,General Retail
+151,"Tailspin Toys (Antares, AZ)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Mideast,Silver,Inactive,Net 15,25000,Online,General Retail
+152,"Tailspin Toys (Sun River, MT)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Far West,Bronze,Active,Net 60,25000,Wholesale,Gift Shop
+153,"Tailspin Toys (Marcell, MN)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Southwest,Silver,Active,Net 60,100000,Wholesale,Hobbyist
+154,"Tailspin Toys (Eden Valley, MN)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Rocky Mountain,Bronze,Active,Net 15,25000,Online,General Retail
+155,"Tailspin Toys (Arbor Vitae, WI)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,New England,Silver,Active,Net 60,10000,Wholesale,General Retail
+156,"Tailspin Toys (Hollywood Park, TX)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southeast,Silver,Active,COD,10000,Wholesale,General Retail
+157,"Tailspin Toys (Saks, AL)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Plains,Silver,Active,Net 30,5000,Wholesale,Hobbyist
+158,"Tailspin Toys (Donner, LA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Mideast,Silver,Active,Net 30,10000,Retail,General Retail
+159,"Tailspin Toys (Saint Louis Park, MN)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,External,Bronze,Active,Net 30,25000,Online,General Retail
+160,"Tailspin Toys (Crary, ND)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Silver,Inactive,Net 30,10000,Online,Gift Shop
+161,"Tailspin Toys (Aspen Park, CO)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Plains,Gold,Active,Net 15,100000,Online,Gift Shop
+162,"Tailspin Toys (Glen Park, NY)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Bronze,Active,Net 30,5000,Retail,Gift Shop
+163,"Tailspin Toys (Panaca, NV)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southeast,Silver,Inactive,Net 30,25000,Retail,Gift Shop
+164,"Tailspin Toys (Rothsville, PA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Great Lakes,Silver,Inactive,Net 30,5000,Online,General Retail
+165,"Tailspin Toys (Topstone, CT)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Mideast,Bronze,Active,Net 30,25000,Retail,Hobbyist
+166,"Tailspin Toys (McCamey, TX)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Far West,Silver,Active,COD,100000,Online,General Retail
+167,"Tailspin Toys (Rockwall, TX)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Rocky Mountain,Gold,Active,Net 30,5000,Retail,Hobbyist
+168,"Tailspin Toys (Seagraves, TX)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,Southwest,Bronze,Active,COD,50000,Wholesale,General Retail
+169,"Tailspin Toys (Sinclair, WY)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Rocky Mountain,Silver,Active,Net 15,25000,Wholesale,Hobbyist
+170,"Tailspin Toys (Eastchester, NY)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Rocky Mountain,Silver,Active,Net 60,50000,Online,General Retail
+171,"Tailspin Toys (Ortley Beach, NJ)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Gold,Active,Net 30,5000,Retail,General Retail
+172,"Tailspin Toys (Madrone, NM)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,New England,Bronze,Inactive,Net 60,50000,Retail,General Retail
+173,"Tailspin Toys (Wappingers Falls, NY)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Plains,Silver,Inactive,Net 60,50000,Wholesale,Gift Shop
+174,"Tailspin Toys (Astor Park, FL)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Far West,Silver,Active,Net 15,5000,Wholesale,Gift Shop
+175,"Tailspin Toys (San Acacia, NM)",Tailspin Toys (Head Office),Department Store,Tailspin Toys,Mideast,Bronze,Active,Net 60,100000,Retail,General Retail
+176,"Tailspin Toys (Malott, WA)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Mideast,Bronze,Active,COD,50000,Retail,Hobbyist
+177,"Tailspin Toys (Orrtanna, PA)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Gold,Active,Net 60,50000,Retail,Gift Shop
+178,"Tailspin Toys (Armstrong Creek, WI)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Great Lakes,Silver,Active,Net 60,100000,Retail,General Retail
+179,"Tailspin Toys (Hiteman, IA)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,External,Gold,Active,Net 60,50000,Retail,Hobbyist
+180,"Tailspin Toys (Caselton, NV)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Far West,Bronze,Active,Net 30,50000,Retail,Gift Shop
+181,"Tailspin Toys (Heilwood, PA)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Mideast,Platinum,Active,Net 30,50000,Online,Gift Shop
+182,"Tailspin Toys (Hayes Center, NE)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,External,Silver,Active,COD,10000,Retail,Hobbyist
+183,"Tailspin Toys (Tierra Verde, FL)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Bronze,Active,COD,100000,Wholesale,General Retail
+184,"Tailspin Toys (South Euclid, OH)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Rocky Mountain,Bronze,Active,Net 30,50000,Online,Gift Shop
+185,"Tailspin Toys (Vidrine, LA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,External,Silver,Active,COD,100000,Retail,General Retail
+186,"Tailspin Toys (Placer, OR)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Far West,Bronze,Inactive,Net 30,25000,Wholesale,Hobbyist
+187,"Tailspin Toys (Brown City, MI)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Far West,Gold,Active,Net 15,25000,Online,General Retail
+188,"Tailspin Toys (Premont, TX)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Plains,Bronze,Active,Net 60,50000,Wholesale,Gift Shop
+189,"Tailspin Toys (Wilkes-Barre, PA)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Great Lakes,Gold,Active,Net 60,100000,Retail,Gift Shop
+190,"Tailspin Toys (Teutopolis, IL)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Mideast,Silver,Active,COD,100000,Retail,General Retail
+191,"Tailspin Toys (Orchard Hill, GA)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southeast,Bronze,Active,Net 30,100000,Retail,General Retail
+192,"Tailspin Toys (Optimo, NM)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Southwest,Gold,Active,Net 30,10000,Retail,Hobbyist
+193,"Tailspin Toys (Knifley, KY)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southwest,Gold,Active,COD,25000,Online,Gift Shop
+194,"Tailspin Toys (Naples Park, FL)",Tailspin Toys (Head Office),Toy Store,Tailspin Toys,Great Lakes,Bronze,Active,Net 30,100000,Online,Hobbyist
+195,"Tailspin Toys (Lesslie, SC)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Rocky Mountain,Bronze,Inactive,Net 15,100000,Wholesale,Gift Shop
+196,"Tailspin Toys (Howells, NE)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Southwest,Silver,Active,Net 60,10000,Retail,Gift Shop
+197,"Tailspin Toys (Magalia, CA)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,External,Silver,Active,COD,10000,Wholesale,Gift Shop
+198,"Tailspin Toys (Buell, MO)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,Plains,Silver,Inactive,COD,100000,Online,Gift Shop
+199,"Tailspin Toys (Antonito, CO)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,Southwest,Gold,Active,Net 30,5000,Retail,General Retail
+200,"Tailspin Toys (Tooele, UT)",Tailspin Toys (Head Office),Specialty Gift,Tailspin Toys,External,Silver,Inactive,COD,100000,Retail,General Retail
+201,"Tailspin Toys (Skyway, WA)",Tailspin Toys (Head Office),Novelty Shop,Tailspin Toys,New England,Gold,Active,Net 15,100000,Online,Gift Shop
+202,Wingtip Toys (Head Office),Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Great Lakes,Bronze,Active,Net 30,10000,Online,General Retail
+203,"Wingtip Toys (Black Lick, PA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southwest,Silver,Active,Net 30,10000,Online,Gift Shop
+204,"Wingtip Toys (Queen Valley, AZ)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Plains,Silver,Active,Net 30,100000,Online,Hobbyist
+205,"Wingtip Toys (Penns Creek, PA)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,External,Silver,Active,Net 30,100000,Online,General Retail
+206,"Wingtip Toys (Bourbonnais, IL)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southeast,Bronze,Active,Net 15,100000,Retail,Gift Shop
+207,"Wingtip Toys (Tuscaloosa, AL)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Rocky Mountain,Gold,Active,Net 30,10000,Online,General Retail
+208,"Wingtip Toys (Mooringsport, LA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,External,Silver,Active,COD,100000,Retail,Gift Shop
+209,"Wingtip Toys (Rockwall, TX)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,External,Silver,Active,Net 15,100000,Retail,Gift Shop
+210,"Wingtip Toys (Orick, CA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,New England,Silver,Inactive,Net 60,50000,Online,Gift Shop
+211,"Wingtip Toys (Bernstein, TX)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Southwest,Platinum,Inactive,Net 60,5000,Online,Hobbyist
+212,"Wingtip Toys (Edmund, WI)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,New England,Bronze,Inactive,COD,25000,Retail,General Retail
+213,"Wingtip Toys (Bozeman Hot Springs, MT)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Great Lakes,Bronze,Active,COD,5000,Online,Gift Shop
+214,"Wingtip Toys (Truscott, TX)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Plains,Silver,Active,Net 15,50000,Online,Hobbyist
+215,"Wingtip Toys (Rose Tree, PA)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Southwest,Silver,Active,Net 60,25000,Online,General Retail
+216,"Wingtip Toys (Leathersville, GA)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Great Lakes,Bronze,Active,Net 60,100000,Wholesale,Hobbyist
+217,"Wingtip Toys (Necedah, WI)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Southwest,Bronze,Active,Net 60,50000,Retail,General Retail
+218,"Wingtip Toys (Chetek, WI)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Plains,Gold,Active,Net 60,100000,Wholesale,General Retail
+219,"Wingtip Toys (Yaak, MT)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Rocky Mountain,Silver,Active,Net 60,10000,Online,Gift Shop
+220,"Wingtip Toys (Compass Lake, FL)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Plains,Silver,Active,Net 30,50000,Wholesale,Gift Shop
+221,"Wingtip Toys (Herlong, CA)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,New England,Silver,Active,COD,10000,Online,General Retail
+222,"Wingtip Toys (Highland Home, AL)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southeast,Bronze,Active,Net 30,50000,Wholesale,Gift Shop
+223,"Wingtip Toys (Naches, WA)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,External,Bronze,Active,Net 60,50000,Online,General Retail
+224,"Wingtip Toys (Baldwin City, KS)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Mideast,Bronze,Inactive,Net 15,10000,Wholesale,General Retail
+225,"Wingtip Toys (Heartwell, NE)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southwest,Silver,Active,Net 15,25000,Wholesale,Gift Shop
+226,"Wingtip Toys (Bethel Acres, OK)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Mideast,Gold,Active,Net 60,5000,Wholesale,Gift Shop
+227,"Wingtip Toys (Willow Valley, AZ)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Plains,Bronze,Active,Net 60,100000,Retail,Gift Shop
+228,"Wingtip Toys (Athol Springs, NY)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,Great Lakes,Bronze,Active,Net 15,50000,Wholesale,General Retail
+229,"Wingtip Toys (Paw Paw Lake, MI)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,External,Gold,Active,Net 30,100000,Retail,General Retail
+230,"Wingtip Toys (Lilbourn, MO)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southwest,Bronze,Active,Net 30,10000,Online,Gift Shop
+231,"Wingtip Toys (Lost River, ID)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Far West,Bronze,Active,Net 60,100000,Wholesale,Gift Shop
+232,"Wingtip Toys (Rosa Sánchez, PR)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Plains,Silver,Active,Net 30,10000,Online,Gift Shop
+233,"Wingtip Toys (Vamo, FL)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Far West,Silver,Active,Net 15,100000,Online,General Retail
+234,"Wingtip Toys (Balko, OK)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Great Lakes,Silver,Active,Net 30,5000,Wholesale,Gift Shop
+235,"Wingtip Toys (Lime Lake, NY)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Southwest,Platinum,Inactive,Net 60,5000,Retail,Hobbyist
+236,"Wingtip Toys (Teutopolis, IL)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southeast,Silver,Active,Net 15,5000,Wholesale,Gift Shop
+237,"Wingtip Toys (Gargatha, VA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southeast,Bronze,Active,Net 30,5000,Online,Gift Shop
+238,"Wingtip Toys (Cadogan, PA)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,New England,Platinum,Inactive,COD,5000,Online,General Retail
+239,"Wingtip Toys (Lucasville, OH)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,New England,Silver,Active,Net 15,5000,Wholesale,General Retail
+240,"Wingtip Toys (Cylon, WI)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,External,Silver,Active,Net 15,10000,Retail,General Retail
+241,"Wingtip Toys (Asher, OK)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,New England,Silver,Active,COD,50000,Retail,General Retail
+242,"Wingtip Toys (Keosauqua, IA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,External,Bronze,Active,COD,100000,Online,Gift Shop
+243,"Wingtip Toys (Homer City, PA)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Southeast,Silver,Inactive,Net 15,5000,Online,General Retail
+244,"Wingtip Toys (Berville, MI)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Plains,Silver,Active,COD,10000,Retail,Gift Shop
+245,"Wingtip Toys (Tea, SD)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Plains,Bronze,Inactive,Net 60,10000,Wholesale,Gift Shop
+246,"Wingtip Toys (Dacono, CO)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,Rocky Mountain,Silver,Active,Net 60,10000,Online,General Retail
+247,"Wingtip Toys (Saint Landry, LA)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Plains,Gold,Active,Net 60,50000,Retail,Hobbyist
+248,"Wingtip Toys (Coin, IA)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,Great Lakes,Silver,Active,Net 15,100000,Online,General Retail
+249,"Wingtip Toys (Salt Wells, NV)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Far West,Gold,Active,COD,50000,Wholesale,General Retail
+250,"Wingtip Toys (Delray, WV)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Plains,Gold,Active,COD,25000,Retail,General Retail
+251,"Wingtip Toys (Mount Summit, IN)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,New England,Silver,Inactive,Net 30,10000,Online,Gift Shop
+252,"Wingtip Toys (Smoot, WY)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southeast,Silver,Active,Net 30,25000,Wholesale,Gift Shop
+253,"Wingtip Toys (Lake Davis, CA)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Plains,Bronze,Inactive,COD,5000,Online,Hobbyist
+254,"Wingtip Toys (Stanardsville, VA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,New England,Silver,Active,COD,5000,Wholesale,Gift Shop
+255,"Wingtip Toys (Corcovado, PR)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Mideast,Silver,Inactive,COD,50000,Wholesale,Hobbyist
+256,"Wingtip Toys (Taft Heights, CA)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,External,Silver,Active,Net 15,100000,Retail,Hobbyist
+257,"Wingtip Toys (West Hempstead, NY)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Mideast,Platinum,Active,COD,25000,Wholesale,Gift Shop
+258,"Wingtip Toys (Portales, NM)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Great Lakes,Silver,Active,Net 30,100000,Online,General Retail
+259,"Wingtip Toys (Coker, AL)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Great Lakes,Gold,Active,Net 15,50000,Wholesale,General Retail
+260,"Wingtip Toys (Haydenville, OH)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Plains,Bronze,Active,COD,5000,Wholesale,Gift Shop
+261,"Wingtip Toys (Mayhill, NM)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Rocky Mountain,Gold,Active,Net 30,100000,Retail,Hobbyist
+262,"Wingtip Toys (Vair, TX)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Great Lakes,Silver,Active,Net 15,100000,Wholesale,General Retail
+263,"Wingtip Toys (Crossroads, NM)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Mideast,Platinum,Inactive,COD,5000,Wholesale,Gift Shop
+264,"Wingtip Toys (Cowlington, OK)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Southeast,Bronze,Active,COD,25000,Online,General Retail
+265,"Wingtip Toys (Glen Ullin, ND)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,Southeast,Silver,Active,COD,5000,Retail,General Retail
+266,"Wingtip Toys (Oologah, OK)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Great Lakes,Silver,Active,Net 15,100000,Retail,Gift Shop
+267,"Wingtip Toys (Lytle, TX)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,New England,Platinum,Active,Net 30,25000,Retail,Hobbyist
+268,"Wingtip Toys (Mahaffey, PA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southeast,Bronze,Active,Net 30,25000,Wholesale,Gift Shop
+269,"Wingtip Toys (Sunburg, MN)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Plains,Gold,Active,Net 60,5000,Retail,Hobbyist
+270,"Wingtip Toys (Johnetta, KY)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,External,Bronze,Active,COD,100000,Wholesale,Hobbyist
+271,"Wingtip Toys (Universal City, TX)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Rocky Mountain,Gold,Active,Net 60,50000,Wholesale,Gift Shop
+272,"Wingtip Toys (Ridgemark, CA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Mideast,Gold,Active,Net 60,100000,Online,Gift Shop
+273,"Wingtip Toys (San Jacinto, CA)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,New England,Platinum,Active,Net 30,10000,Online,Hobbyist
+274,"Wingtip Toys (Floriston, CA)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,External,Silver,Active,Net 15,50000,Online,General Retail
+275,"Wingtip Toys (Bokeelia, FL)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Far West,Silver,Active,Net 15,25000,Online,Hobbyist
+276,"Wingtip Toys (Cale, AR)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Rocky Mountain,Platinum,Active,Net 30,50000,Online,Gift Shop
+277,"Wingtip Toys (Karthaus, PA)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Rocky Mountain,Bronze,Active,Net 15,25000,Wholesale,Hobbyist
+278,"Wingtip Toys (Glancy, MS)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Southwest,Silver,Active,Net 60,25000,Wholesale,Hobbyist
+279,"Wingtip Toys (Stoneboro, PA)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,Plains,Silver,Active,COD,50000,Retail,General Retail
+280,"Wingtip Toys (Mier, IN)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,External,Silver,Active,Net 30,25000,Wholesale,Gift Shop
+281,"Wingtip Toys (Wapinitia, OR)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Great Lakes,Silver,Active,COD,25000,Wholesale,General Retail
+282,"Wingtip Toys (White Church, MO)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Far West,Silver,Active,Net 15,10000,Online,General Retail
+283,"Wingtip Toys (Caton, NY)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Far West,Gold,Active,COD,100000,Wholesale,Gift Shop
+284,"Wingtip Toys (Plum Branch, SC)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Rocky Mountain,Gold,Active,Net 15,100000,Online,General Retail
+285,"Wingtip Toys (Mauldin, SC)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,External,Bronze,Active,Net 15,10000,Retail,Gift Shop
+286,"Wingtip Toys (Bonner Springs, KS)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,External,Bronze,Inactive,Net 60,50000,Retail,Hobbyist
+287,"Wingtip Toys (Lowellville, OH)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Great Lakes,Silver,Active,Net 15,5000,Wholesale,General Retail
+288,"Wingtip Toys (Elverson, PA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Great Lakes,Gold,Active,Net 60,5000,Retail,Gift Shop
+289,"Wingtip Toys (Isabela, PR)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Plains,Silver,Active,Net 60,5000,Wholesale,General Retail
+290,"Wingtip Toys (Sayner, WI)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Southeast,Silver,Active,Net 60,10000,Retail,General Retail
+291,"Wingtip Toys (Beals, ME)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Plains,Platinum,Active,Net 30,10000,Online,Gift Shop
+292,"Wingtip Toys (Morton Grove, IL)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,Southeast,Gold,Inactive,Net 30,25000,Online,General Retail
+293,"Wingtip Toys (Birds, IL)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,Southwest,Bronze,Active,Net 15,5000,Online,General Retail
+294,"Wingtip Toys (Federalsburg, MD)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Mideast,Silver,Active,Net 60,50000,Online,General Retail
+295,"Wingtip Toys (Pikeview, CO)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Great Lakes,Platinum,Active,Net 30,50000,Wholesale,Gift Shop
+296,"Wingtip Toys (Boalsburg, PA)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Far West,Gold,Active,Net 60,5000,Retail,Hobbyist
+297,"Wingtip Toys (Port Hueneme, CA)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Plains,Gold,Active,COD,5000,Wholesale,General Retail
+298,"Wingtip Toys (Verdery, SC)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southwest,Silver,Active,COD,5000,Online,Gift Shop
+299,"Wingtip Toys (Obetz, OH)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,New England,Platinum,Active,COD,10000,Wholesale,General Retail
+300,"Wingtip Toys (East Fultonham, OH)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Far West,Gold,Active,Net 15,10000,Retail,General Retail
+301,"Wingtip Toys (Obion, TN)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Plains,Bronze,Active,Net 60,10000,Wholesale,General Retail
+302,"Wingtip Toys (Cavendish, VT)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Mideast,Gold,Active,COD,100000,Retail,General Retail
+303,"Wingtip Toys (Miesville, MN)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Plains,Silver,Active,Net 30,50000,Wholesale,General Retail
+304,"Wingtip Toys (Valhalla, NC)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,New England,Gold,Active,COD,50000,Retail,General Retail
+305,"Wingtip Toys (Cape Neddick, ME)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Mideast,Platinum,Active,COD,25000,Retail,Gift Shop
+306,"Wingtip Toys (Silver Plume, CO)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Southeast,Gold,Active,COD,10000,Online,Hobbyist
+307,"Wingtip Toys (North Beach Haven, NJ)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Mideast,Bronze,Active,Net 15,100000,Retail,Hobbyist
+308,"Wingtip Toys (Downingtown, PA)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Rocky Mountain,Bronze,Active,Net 30,100000,Online,General Retail
+309,"Wingtip Toys (Branson West, MO)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Mideast,Bronze,Active,Net 60,50000,Online,General Retail
+310,"Wingtip Toys (Bergen Park, CO)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Far West,Silver,Active,Net 30,10000,Online,General Retail
+311,"Wingtip Toys (Grabill, IN)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Southeast,Silver,Active,Net 60,25000,Wholesale,General Retail
+312,"Wingtip Toys (North Manitou, MI)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Southeast,Gold,Active,Net 15,10000,Wholesale,Hobbyist
+313,"Wingtip Toys (Philip, SD)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Plains,Gold,Active,Net 15,5000,Wholesale,General Retail
+314,"Wingtip Toys (Straughn, IN)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,Rocky Mountain,Bronze,Active,Net 15,10000,Wholesale,General Retail
+315,"Wingtip Toys (Gilford, NH)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southwest,Platinum,Active,Net 15,5000,Retail,Gift Shop
+316,"Wingtip Toys (Del Valle, TX)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southwest,Platinum,Inactive,Net 60,5000,Retail,Gift Shop
+317,"Wingtip Toys (Harkers Island, NC)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,New England,Gold,Active,COD,25000,Wholesale,General Retail
+318,"Wingtip Toys (Licking, MO)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,New England,Platinum,Active,Net 60,50000,Retail,Gift Shop
+319,"Wingtip Toys (Raton, NM)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Far West,Gold,Active,Net 30,10000,Retail,Gift Shop
+320,"Wingtip Toys (Boynton, OK)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Rocky Mountain,Silver,Inactive,Net 15,5000,Online,Gift Shop
+321,"Wingtip Toys (Frenchburg, KY)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Far West,Silver,Active,Net 15,10000,Online,Gift Shop
+322,"Wingtip Toys (Robertsdale, AL)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Rocky Mountain,Bronze,Active,Net 30,50000,Online,Gift Shop
+323,"Wingtip Toys (Dickerson, MD)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,Mideast,Bronze,Active,Net 60,50000,Online,General Retail
+324,"Wingtip Toys (Bruceton Mills, WV)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,External,Silver,Active,COD,100000,Retail,Gift Shop
+325,"Wingtip Toys (Cloquet, MN)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Plains,Gold,Active,COD,50000,Wholesale,Hobbyist
+326,"Wingtip Toys (Claycomo, MO)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,New England,Silver,Inactive,Net 30,25000,Retail,Hobbyist
+327,"Wingtip Toys (Beekmantown, NY)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,External,Silver,Active,COD,5000,Retail,General Retail
+328,"Wingtip Toys (Islip Terrace, NY)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Mideast,Gold,Active,Net 60,100000,Retail,Gift Shop
+329,"Wingtip Toys (Rich Creek, VA)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Plains,Silver,Active,Net 60,25000,Online,Hobbyist
+330,"Wingtip Toys (Griswoldville, GA)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Mideast,Silver,Active,Net 30,10000,Online,General Retail
+331,"Wingtip Toys (East Mountain, TX)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Mideast,Silver,Active,Net 60,5000,Online,General Retail
+332,"Wingtip Toys (Omer, MI)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,New England,Silver,Active,Net 15,50000,Wholesale,General Retail
+333,"Wingtip Toys (Waycross, GA)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Great Lakes,Gold,Active,Net 30,5000,Retail,Hobbyist
+334,"Wingtip Toys (Nichols Hills, OK)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southeast,Bronze,Active,Net 60,10000,Wholesale,Gift Shop
+335,"Wingtip Toys (Plaquemine, LA)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Mideast,Bronze,Active,Net 30,100000,Online,Hobbyist
+336,"Wingtip Toys (Triadelphia, WV)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Mideast,Gold,Active,COD,100000,Wholesale,General Retail
+337,"Wingtip Toys (Ferney, SD)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Mideast,Bronze,Inactive,Net 60,100000,Retail,Hobbyist
+338,"Wingtip Toys (Akhiok, AK)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,Rocky Mountain,Silver,Active,Net 15,50000,Retail,General Retail
+339,"Wingtip Toys (Deeson, MS)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,New England,Bronze,Inactive,Net 60,25000,Online,Gift Shop
+340,"Wingtip Toys (Nuangola, PA)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,Southeast,Bronze,Active,Net 30,25000,Online,General Retail
+341,"Wingtip Toys (Weld, ME)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Great Lakes,Silver,Active,Net 30,5000,Wholesale,Gift Shop
+342,"Wingtip Toys (Mickleton, NJ)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southeast,Platinum,Active,Net 60,50000,Online,Gift Shop
+343,"Wingtip Toys (Schererville, IN)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Great Lakes,Gold,Active,Net 15,100000,Online,Gift Shop
+344,"Wingtip Toys (Lexington Heights, MI)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Far West,Silver,Active,Net 15,100000,Retail,Gift Shop
+345,"Wingtip Toys (Broomtown, AL)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,External,Silver,Active,Net 15,10000,Online,General Retail
+346,"Wingtip Toys (Jamison, IA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Great Lakes,Gold,Active,Net 30,10000,Online,Gift Shop
+347,"Wingtip Toys (Key Biscayne, FL)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Rocky Mountain,Gold,Active,Net 60,100000,Retail,Gift Shop
+348,"Wingtip Toys (Chaseley, ND)",Wingtip Toys (Head Office),Department Store,Wingtip Toys,Rocky Mountain,Bronze,Inactive,COD,100000,Retail,General Retail
+349,"Wingtip Toys (Indian Creek, IL)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Great Lakes,Bronze,Inactive,Net 30,50000,Wholesale,Hobbyist
+350,"Wingtip Toys (Lake Ronkonkoma, NY)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Mideast,Silver,Active,Net 15,25000,Online,Hobbyist
+351,"Wingtip Toys (Morrison Bluff, AR)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Great Lakes,Gold,Active,Net 60,10000,Retail,Hobbyist
+352,"Wingtip Toys (Huntingburg, IN)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,External,Gold,Active,Net 15,25000,Wholesale,Hobbyist
+353,"Wingtip Toys (Shay, PA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,New England,Platinum,Active,COD,50000,Wholesale,Gift Shop
+354,"Wingtip Toys (Helotes, TX)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Rocky Mountain,Bronze,Active,Net 15,100000,Online,Gift Shop
+355,"Wingtip Toys (Hollandsburg, IN)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Great Lakes,Gold,Active,Net 15,25000,Online,Hobbyist
+356,"Wingtip Toys (Liberty Grove, MD)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,External,Silver,Active,COD,100000,Wholesale,Gift Shop
+357,"Wingtip Toys (Morita, TX)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Great Lakes,Gold,Inactive,Net 60,100000,Retail,General Retail
+358,"Wingtip Toys (New Laguna, NM)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Great Lakes,Silver,Active,Net 30,5000,Wholesale,Gift Shop
+359,"Wingtip Toys (Bourneville, OH)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Great Lakes,Silver,Active,Net 60,25000,Online,Gift Shop
+360,"Wingtip Toys (Mendoza, TX)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Far West,Bronze,Active,COD,25000,Retail,General Retail
+361,"Wingtip Toys (Palmas del Mar, PR)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Great Lakes,Gold,Active,Net 15,100000,Retail,General Retail
+362,"Wingtip Toys (Marion Junction, AL)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Great Lakes,Platinum,Active,Net 60,50000,Wholesale,General Retail
+363,"Wingtip Toys (Ware Shoals, SC)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,New England,Gold,Inactive,Net 30,5000,Online,General Retail
+364,"Wingtip Toys (Lostine, OR)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Plains,Bronze,Active,COD,100000,Wholesale,Gift Shop
+365,"Wingtip Toys (Tilleda, WI)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southeast,Bronze,Inactive,Net 60,10000,Wholesale,Gift Shop
+366,"Wingtip Toys (Wapiti, WY)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Southeast,Silver,Active,Net 30,10000,Wholesale,Hobbyist
+367,"Wingtip Toys (Amado, AZ)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Plains,Silver,Active,COD,5000,Retail,General Retail
+368,"Wingtip Toys (Jeromesville, OH)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Plains,Silver,Active,Net 30,50000,Retail,Gift Shop
+369,"Wingtip Toys (Ovilla, TX)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Far West,Gold,Active,COD,100000,Online,Hobbyist
+370,"Wingtip Toys (West Frostproof, FL)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Rocky Mountain,Bronze,Inactive,Net 15,25000,Online,Gift Shop
+371,"Wingtip Toys (Flomaton, AL)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Far West,Silver,Inactive,Net 60,5000,Wholesale,General Retail
+372,"Wingtip Toys (Pawlet, VT)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southwest,Silver,Active,Net 30,50000,Wholesale,Gift Shop
+373,"Wingtip Toys (Trout Run, PA)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Southwest,Silver,Active,COD,25000,Wholesale,Hobbyist
+374,"Wingtip Toys (Marin City, CA)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,New England,Platinum,Active,Net 30,10000,Online,General Retail
+375,"Wingtip Toys (Molalla, OR)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southeast,Gold,Inactive,Net 30,10000,Retail,Gift Shop
+376,"Wingtip Toys (Trumansburg, NY)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Southwest,Bronze,Active,Net 60,25000,Retail,Hobbyist
+377,"Wingtip Toys (Goodings Grove, IL)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Rocky Mountain,Platinum,Active,Net 15,5000,Wholesale,General Retail
+378,"Wingtip Toys (Cherryplain, NY)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Far West,Silver,Active,Net 30,10000,Wholesale,Gift Shop
+379,"Wingtip Toys (Bell Acres, PA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Rocky Mountain,Gold,Active,COD,100000,Wholesale,Gift Shop
+380,"Wingtip Toys (Connoquenessing, PA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,New England,Silver,Active,COD,25000,Wholesale,Gift Shop
+381,"Wingtip Toys (Sarversville, PA)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Far West,Gold,Active,Net 15,25000,Online,Gift Shop
+382,"Wingtip Toys (Munich, ND)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Plains,Silver,Inactive,COD,10000,Retail,General Retail
+383,"Wingtip Toys (Montoya, NM)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Plains,Bronze,Active,Net 15,5000,Wholesale,Hobbyist
+384,"Wingtip Toys (Knights Landing, CA)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Rocky Mountain,Gold,Active,COD,100000,Online,General Retail
+385,"Wingtip Toys (Cache, OK)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,External,Silver,Inactive,Net 60,5000,Wholesale,Gift Shop
+386,"Wingtip Toys (Towaco, NJ)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,External,Silver,Active,Net 30,50000,Wholesale,Gift Shop
+387,"Wingtip Toys (Lynne, FL)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Great Lakes,Silver,Inactive,Net 60,50000,Retail,Gift Shop
+388,"Wingtip Toys (Plata, TX)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Great Lakes,Bronze,Active,Net 30,10000,Wholesale,General Retail
+389,"Wingtip Toys (Oak Point, TX)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Rocky Mountain,Bronze,Active,Net 30,10000,Retail,Hobbyist
+390,"Wingtip Toys (Alcester, SD)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southwest,Gold,Inactive,Net 30,10000,Retail,Gift Shop
+391,"Wingtip Toys (McAdenville, NC)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Mideast,Platinum,Active,Net 60,50000,Retail,Hobbyist
+392,"Wingtip Toys (Idaho City, ID)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Southwest,Gold,Active,Net 30,5000,Online,Hobbyist
+393,"Wingtip Toys (Dunkerton, IA)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Southeast,Silver,Active,Net 60,5000,Online,General Retail
+394,"Wingtip Toys (Cuyamungue, NM)",Wingtip Toys (Head Office),Toy Store,Wingtip Toys,Far West,Platinum,Active,Net 15,10000,Retail,Hobbyist
+395,"Wingtip Toys (Marfa, TX)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Mideast,Silver,Active,COD,100000,Wholesale,General Retail
+396,"Wingtip Toys (Accomac, VA)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,External,Silver,Active,COD,5000,Retail,General Retail
+397,"Wingtip Toys (Cos Cob, CT)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Mideast,Silver,Inactive,Net 30,50000,Wholesale,General Retail
+398,"Wingtip Toys (Haycock, AK)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,New England,Bronze,Active,Net 60,25000,Retail,General Retail
+399,"Wingtip Toys (Kapa'a, HI)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Southwest,Gold,Active,COD,25000,Wholesale,Gift Shop
+400,"Wingtip Toys (Dickworsham, TX)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,New England,Platinum,Active,Net 60,25000,Online,Gift Shop
+401,"Wingtip Toys (Caro, MI)",Wingtip Toys (Head Office),Novelty Shop,Wingtip Toys,Far West,Bronze,Active,Net 60,100000,Wholesale,Gift Shop
+402,"Wingtip Toys (Ruthsburg, MD)",Wingtip Toys (Head Office),Specialty Gift,Wingtip Toys,Great Lakes,Silver,Active,Net 30,10000,Retail,General Retail

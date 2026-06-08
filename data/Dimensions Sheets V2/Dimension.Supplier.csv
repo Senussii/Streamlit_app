@@ -1,0 +1,28 @@
+Supplier Key,Supplier,Subcategory,Category,Payment Days,Supplier Rating,Country,Lead Time Days (Supplier),Supplier Tier,Delivery Speed Category,Payment Terms Type,Region
+1,A Datum Corporation,Seasonal Novelties,Novelty Goods Supplier,14,4.4,UK,4,Gold,Express,Immediate,Europe
+2,Woodgrove Bank,Treasury Services,Financial Services Supplier,7,4.1,USA,5,Gold,Express,Immediate,North America
+3,Consolidated Messenger,Next-Day Delivery,Courier,30,3.8,USA,21,Silver,Slow,Net 30,North America
+4,"Litware, Inc.",Retail Packaging,Packaging Supplier,30,3.3,China,14,Bronze,Economy,Net 30,Asia-Pacific
+5,Humongous Insurance,Property Insurance,Insurance Services Supplier,14,3,Australia,11,Bronze,Economy,Immediate,Asia-Pacific
+6,Graphic Design Institute,Branded Merchandise,Novelty Goods Supplier,14,3.4,Australia,4,Bronze,Express,Immediate,Asia-Pacific
+7,"Fabrikam, Inc.",Casual Apparel,Clothing Supplier,30,3.9,Australia,24,Silver,Slow,Net 30,Asia-Pacific
+8,The Phone Company,Seasonal Novelties,Novelty Goods Supplier,30,2.9,USA,15,Bronze,Economy,Net 30,North America
+9,Trey Research,Brand Strategy,Marketing Services Supplier,7,3.3,Germany,19,Bronze,Economy,Immediate,Europe
+10,Lucerne Publishing,Seasonal Novelties,Novelty Goods Supplier,30,3.5,China,28,Silver,Slow,Net 30,Asia-Pacific
+11,"Contoso, Ltd.",Seasonal Novelties,Novelty Goods Supplier,7,4.2,Germany,28,Gold,Slow,Immediate,Europe
+12,Nod Publishers,Branded Merchandise,Novelty Goods Supplier,7,3.6,China,3,Silver,Express,Immediate,Asia-Pacific
+13,Northwind Electric Cars,Board Games & Puzzles,Toy Supplier,30,4.5,China,15,Platinum,Economy,Net 30,Asia-Pacific
+14,A Datum Corporation,Seasonal Novelties,Novelty Goods Supplier,14,4.1,China,12,Gold,Economy,Immediate,Asia-Pacific
+15,"Contoso, Ltd.",Seasonal Novelties,Novelty Goods Supplier,7,4.2,UK,3,Gold,Express,Immediate,Europe
+16,Consolidated Messenger,Next-Day Delivery,Courier,30,4.8,France,24,Platinum,Slow,Net 30,Europe
+17,"Fabrikam, Inc.",Casual Apparel,Clothing Supplier,30,3.2,France,4,Bronze,Express,Net 30,Europe
+18,Graphic Design Institute,Branded Merchandise,Novelty Goods Supplier,14,3.7,Canada,21,Silver,Slow,Immediate,North America
+19,Humongous Insurance,Property Insurance,Insurance Services Supplier,14,3.2,Germany,27,Bronze,Slow,Immediate,Europe
+20,"Litware, Inc.",Retail Packaging,Packaging Supplier,30,4.2,China,19,Gold,Economy,Net 30,Asia-Pacific
+21,Lucerne Publishing,Seasonal Novelties,Novelty Goods Supplier,30,3.2,Canada,4,Bronze,Express,Net 30,North America
+22,Nod Publishers,Branded Merchandise,Novelty Goods Supplier,7,4.7,France,4,Platinum,Express,Immediate,Europe
+23,Northwind Electric Cars,Board Games & Puzzles,Toy Supplier,30,4.9,China,27,Platinum,Slow,Net 30,Asia-Pacific
+24,Trey Research,Brand Strategy,Marketing Services Supplier,7,2.8,USA,17,Bronze,Economy,Immediate,North America
+25,The Phone Company,Seasonal Novelties,Novelty Goods Supplier,30,3.2,Germany,17,Bronze,Economy,Net 30,Europe
+26,Woodgrove Bank,Treasury Services,Financial Services Supplier,7,3,Germany,15,Bronze,Economy,Immediate,Europe
+27,Consolidated Messenger,Bulk Shipping,Courier Services Supplier,30,4.4,Germany,15,Gold,Economy,Net 30,Europe
