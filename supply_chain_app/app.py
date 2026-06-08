@@ -69,8 +69,8 @@ with st.sidebar:
     st.markdown("""
     <div style="text-align:center;padding:16px 0 8px">
         <div style="font-size:2rem">🔗</div>
-        <div style="font-size:1.1rem;font-weight:700;color:#00D4FF">SC Intelligence</div>
-        <div style="font-size:0.75rem;color:#8B949E">Galaxy Schema · ML Analytics</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#00D4FF">InsightAI</div>
+        <div style="font-size:0.75rem;color:#8B949E">ML Analytics</div>
     </div>
     <hr style="border-color:#30363D;margin:8px 0 16px">
     """, unsafe_allow_html=True)
