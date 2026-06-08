@@ -27,7 +27,7 @@ def load_dimensions():
     city     = _csv("Dimension.City.csv")
     supplier = _csv("Dimension.Supplier.csv")
     txn_type = _csv("Dimension.Transaction Type.csv")
-    payment  = _csv("Demension.Payment Method.csv")
+    payment  = _csv("Dimension.Payment Method.csv")
 
     # parse dates
     date["Date"] = pd.to_datetime(date["Date"], dayfirst=True, errors="coerce")

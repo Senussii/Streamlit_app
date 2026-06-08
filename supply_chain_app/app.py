@@ -1,7 +1,7 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  SUPPLY CHAIN INTELLIGENCE PLATFORM                                         ║
-║  End-to-End Predictive Analytics · Galaxy Schema DWH · ML-Powered          ║
+║  SUPPLY CHAIN INTELLIGENCE PLATFORM                                          ║
+║  End-to-End Predictive Analytics · Galaxy Schema DWH · ML-Powered            ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 Modules
