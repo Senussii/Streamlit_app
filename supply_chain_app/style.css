@@ -1,60 +1,352 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+/* ═══════════════════════════════════════════════════════════════════════════
+   Supply Chain Intelligence Platform  ·  style.css  v2.0
+   Design language: precision-instrument dark UI — the aesthetic of a
+   mission-control room. Sharp edges on live data, soft glows on confidence.
+   Signature: the nav active-state left accent bar pulses once on selection,
+   mirroring the real-time "live" indicator in the header.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-html, body, [class*="css"]  { font-family: 'Inter', sans-serif; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+html, body, [class*="css"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
 .main { background-color: #0E1117; }
 
-/* sidebar */
+/* ══════════════════════════════════════════════════════════════════════════
+   SIDEBAR  ─  complete identity overhaul
+   ══════════════════════════════════════════════════════════════════════════ */
+
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg,#0E1117 0%,#161B22 100%);
-    border-right: 1px solid #30363D;
+    background: linear-gradient(170deg, #070C13 0%, #0A1018 35%, #0D1117 70%, #0E1117 100%);
+    border-right: 1px solid #1C2430;
 }
 
-/* metric cards */
-.metric-card {
-    background: linear-gradient(135deg,#161B22 0%,#1C2333 100%);
-    border: 1px solid #30363D;
+/* Tighten Streamlit's default inner padding so our HTML controls spacing */
+[data-testid="stSidebar"] > div:first-child { padding-top: 0 !important; }
+[data-testid="stSidebar"] .stMarkdown { margin-bottom: 0 !important; }
+[data-testid="stSidebar"] .stMarkdown > div { margin: 0 !important; }
+[data-testid="stSidebar"] .block-container { padding: 0 !important; }
+
+/* ── Brand header ─────────────────────────────────────────────────────────── */
+.sb-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 22px 16px 14px;
+    position: relative;
+}
+
+/* Conic gradient border — the page's "aesthetic risk" element.
+   Supply chain = rotating flows of goods, encoded in CSS. */
+.sb-brand-icon {
+    flex-shrink: 0;
+    width: 42px; height: 42px;
+    border-radius: 11px;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    background: #0A1018;
+    z-index: 1;
+}
+.sb-brand-icon::before {
+    content: "";
+    position: absolute; inset: -1.5px;
     border-radius: 12px;
-    padding: 18px 22px;
+    background: conic-gradient(
+        from var(--angle, 0deg),
+        #00D4FF 0%, #7B2FBE 30%, #00C49A 55%, #00D4FF 80%, transparent 100%
+    );
+    z-index: -1;
+    animation: spin-border 6s linear infinite;
+}
+@property --angle {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 0deg;
+}
+@keyframes spin-border { to { --angle: 360deg; } }
+
+.sb-brand-icon svg { position: relative; z-index: 1; }
+
+.sb-brand-text { flex: 1; min-width: 0; }
+.sb-brand-name {
+    font-size: 1.05rem; font-weight: 700;
+    color: #E6EDF3; letter-spacing: 0.2px;
+    line-height: 1.2;
+}
+.sb-brand-tagline {
+    font-size: 0.62rem; font-weight: 500;
+    color: #4D5966;
+    text-transform: uppercase; letter-spacing: 0.9px;
+    margin-top: 2px;
+}
+
+/* Pulsing live dot */
+.sb-live-dot {
+    position: absolute; right: 18px; top: 24px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #00C49A;
+    animation: live-pulse 2.4s ease-in-out infinite;
+}
+@keyframes live-pulse {
+    0%, 100% { box-shadow: 0 0 0 0   rgba(0,196,154,0.5); opacity: 1;   }
+    50%       { box-shadow: 0 0 0 7px rgba(0,196,154,0);   opacity: 0.8; }
+}
+
+/* ── Divider ──────────────────────────────────────────────────────────────── */
+.sb-divider {
+    height: 1px;
+    margin: 0 12px 10px;
+    background: linear-gradient(90deg,
+        transparent 0%, #1C2430 20%, #21262D 50%, #1C2430 80%, transparent 100%);
+}
+
+/* ── Data status panel ────────────────────────────────────────────────────── */
+.sb-status {
+    margin: 0 10px 10px;
+    padding: 10px 13px 11px;
+    background: rgba(16, 22, 32, 0.85);
+    border: 1px solid #1C2430;
+    border-radius: 9px;
+}
+.sb-status-head {
+    display: flex; align-items: center; gap: 7px;
+    margin-bottom: 9px;
+}
+.sb-status-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    background: #00C49A;
+    box-shadow: 0 0 5px rgba(0,196,154,0.7);
+}
+.sb-status-label {
+    font-size: 0.63rem; font-weight: 600;
+    color: #4D5966;
+    text-transform: uppercase; letter-spacing: 0.85px;
+}
+.sb-status-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+}
+.sb-stat { text-align: center; padding: 2px 0; }
+.sb-stat-val {
+    font-size: 0.93rem; font-weight: 700;
+    color: #00D4FF;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.3px;
+}
+.sb-stat-lbl {
+    font-size: 0.6rem; color: #4D5966; margin-top: 1px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* ── Section label ────────────────────────────────────────────────────────── */
+.sb-section-label {
+    font-size: 0.6rem; font-weight: 700;
+    color: #3A4450;
+    text-transform: uppercase; letter-spacing: 1.1px;
+    padding: 8px 16px 5px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Radio → Navigation items  (CSS-only transform, no JS)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Remove Streamlit's own radio padding/margins */
+[data-testid="stSidebar"] [data-testid="stRadio"] {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+/* Hide the "Navigation" label generated by label_visibility="collapsed" fallback */
+[data-testid="stSidebar"] [data-testid="stRadio"] > div:first-child {
+    display: none !important;
+}
+/* The role="radiogroup" container */
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] {
+    gap: 1px !important;
+    padding: 0 !important;
+}
+
+/* Each option label — restyled as a nav item */
+[data-testid="stSidebar"] [data-testid="stRadio"] label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+    padding: 9px 14px 9px 16px !important;
+    margin: 1px 8px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    border: 1px solid transparent !important;
+    transition: background 0.13s ease, border-color 0.13s ease, color 0.13s ease !important;
+    font-size: 0.84rem !important;
+    font-weight: 400 !important;
+    color: #5E6E7E !important;
+    min-height: 36px !important;
+    width: auto !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+}
+
+/* Hide the default radio-button circle */
+[data-testid="stSidebar"] [data-testid="stRadio"] [data-baseweb="radio"] > div:first-child,
+[data-testid="stSidebar"] [data-testid="stRadio"] label > div:first-child {
+    display: none !important;
+}
+
+/* Hover state */
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
+    background: rgba(0, 212, 255, 0.05) !important;
+    border-color: rgba(0, 212, 255, 0.12) !important;
+    color: #9AAAB8 !important;
+}
+
+/* Active / selected state — the signature left-accent bar */
+[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {
+    background: linear-gradient(
+        90deg,
+        rgba(0, 212, 255, 0.10) 0%,
+        rgba(123, 47, 190, 0.04) 100%
+    ) !important;
+    border-color: rgba(0, 212, 255, 0.22) !important;
+    color: #D6E4EF !important;
+    font-weight: 500 !important;
+    box-shadow: inset 3px 0 0 #00D4FF !important;
+}
+
+/* ── Model performance panel ──────────────────────────────────────────────── */
+.sb-metrics {
+    margin: 0 10px;
+    padding: 9px 13px 10px;
+    background: rgba(14, 17, 23, 0.7);
+    border: 1px solid #1C2430;
+    border-radius: 9px;
+}
+.sb-metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.sb-metric-row:last-child { border-bottom: none; }
+.sb-metric-name { font-size: 0.7rem; color: #4D5966; }
+.sb-metric-val  {
+    font-size: 0.7rem; font-weight: 600; color: #00D4FF;
+    font-family: 'JetBrains Mono', monospace;
+}
+.sb-metric-val.good  { color: #00C49A; }
+.sb-metric-val.warn  { color: #FFD700; }
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+.sb-footer {
+    padding: 10px 16px 16px;
+    margin-top: 8px;
+    border-top: 1px solid #1C2430;
+}
+.sb-footer-line {
+    font-size: 0.61rem; color: #2E3844;
+    margin-bottom: 2px; letter-spacing: 0.2px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Metric cards
+   ══════════════════════════════════════════════════════════════════════════ */
+.metric-card {
+    background: linear-gradient(135deg, #101820 0%, #141E2A 100%);
+    border: 1px solid #1C2430;
+    border-radius: 12px;
+    padding: 16px 18px 14px;
     text-align: center;
     position: relative;
     overflow: hidden;
+    transition: border-color 0.2s;
 }
+.metric-card:hover { border-color: rgba(0, 212, 255, 0.2); }
 .metric-card::before {
     content: "";
-    position: absolute; top:0; left:0; right:0; height:3px;
-    background: linear-gradient(90deg,#00D4FF,#7B2FBE);
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, #00D4FF 0%, #7B2FBE 60%, transparent 100%);
 }
-.metric-value { font-size: 2rem; font-weight:700; color:#00D4FF; }
-.metric-label { font-size: 0.8rem; color:#8B949E; margin-top:4px; }
-.metric-delta { font-size:0.85rem; margin-top:6px; }
-.delta-pos { color:#00C49A; }
-.delta-neg { color:#FF4C6E; }
+.metric-value {
+    font-size: 1.9rem; font-weight: 700;
+    color: #00D4FF;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+}
+.metric-label {
+    font-size: 0.72rem; color: #5E6E7E;
+    margin-top: 5px; text-transform: uppercase;
+    letter-spacing: 0.7px; font-weight: 500;
+}
+.metric-delta { font-size: 0.8rem; margin-top: 5px; }
+.delta-pos    { color: #00C49A; }
+.delta-neg    { color: #FF4C6E; }
 
-/* section headers */
+/* ══════════════════════════════════════════════════════════════════════════
+   Section headers
+   ══════════════════════════════════════════════════════════════════════════ */
 .section-header {
-    background: linear-gradient(90deg,rgba(0,212,255,0.1),transparent);
-    border-left: 3px solid #00D4FF;
-    padding: 8px 16px; border-radius:0 8px 8px 0;
-    margin-bottom:16px;
+    background: linear-gradient(90deg, rgba(0, 212, 255, 0.07), transparent);
+    border-left: 2px solid #00D4FF;
+    padding: 7px 14px;
+    border-radius: 0 7px 7px 0;
+    margin-bottom: 14px;
 }
-.section-header h3 { color:#00D4FF !important; margin:0; font-size:1.1rem; }
+.section-header h3 {
+    color: #00D4FF !important;
+    margin: 0 !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.1px;
+}
 
-/* badges */
+/* ══════════════════════════════════════════════════════════════════════════
+   Risk badges
+   ══════════════════════════════════════════════════════════════════════════ */
 .badge {
-    display:inline-block; padding:3px 10px; border-radius:20px;
-    font-size:0.75rem; font-weight:600;
+    display: inline-block; padding: 2px 9px;
+    border-radius: 20px; font-size: 0.71rem; font-weight: 600;
 }
-.badge-high   { background:#FF4C6E22; color:#FF4C6E; border:1px solid #FF4C6E44; }
-.badge-medium { background:#FFD70022; color:#FFD700; border:1px solid #FFD70044; }
-.badge-low    { background:#00C49A22; color:#00C49A; border:1px solid #00C49A44; }
+.badge-high   { background: rgba(255, 76, 110, 0.12); color: #FF4C6E; border: 1px solid rgba(255, 76, 110, 0.3);  }
+.badge-medium { background: rgba(255, 215,   0, 0.10); color: #FFD700; border: 1px solid rgba(255, 215,   0, 0.25); }
+.badge-low    { background: rgba(  0, 196, 154, 0.10); color: #00C49A; border: 1px solid rgba(  0, 196, 154, 0.25); }
 
-/* tables */
-[data-testid="stDataFrame"] { border-radius:8px; overflow:hidden; }
+/* ══════════════════════════════════════════════════════════════════════════
+   DataFrames / Tables
+   ══════════════════════════════════════════════════════════════════════════ */
+[data-testid="stDataFrame"]          { border-radius: 9px !important; overflow: hidden; }
+[data-testid="stDataFrame"] table    { background: #0D1117 !important; }
+[data-testid="stDataFrame"] th       { background: #101820 !important; color: #8B949E !important; font-size: 0.75rem !important; }
+[data-testid="stDataFrame"] td       { color: #C9D1D9 !important; font-size: 0.8rem !important; }
+[data-testid="stDataFrame"] tr:hover { background: rgba(0,212,255,0.03) !important; }
 
-/* progress bars in sidebar */
-.stProgress > div > div { background:#00D4FF; }
+/* ══════════════════════════════════════════════════════════════════════════
+   Tabs
+   ══════════════════════════════════════════════════════════════════════════ */
+[data-baseweb="tab-list"]         { background: #101820; border-radius: 8px; padding: 3px; }
+[data-baseweb="tab"]              { color: #5E6E7E !important; border-radius: 6px; font-size: 0.85rem !important; }
+[aria-selected="true"]            { color: #00D4FF !important; background: rgba(0,212,255,0.08) !important; border-bottom: 2px solid #00D4FF !important; }
 
-/* tabs */
-[data-baseweb="tab-list"] { background:#161B22; border-radius:8px; }
-[data-baseweb="tab"] { color:#8B949E !important; }
-[aria-selected="true"] { color:#00D4FF !important; border-bottom-color:#00D4FF !important; }
+/* ══════════════════════════════════════════════════════════════════════════
+   Misc Streamlit overrides
+   ══════════════════════════════════════════════════════════════════════════ */
+.stProgress > div > div       { background: linear-gradient(90deg, #00D4FF, #7B2FBE); }
+[data-testid="stMetricValue"] { font-family: 'JetBrains Mono', monospace; }
+
+/* Spinner */
+[data-testid="stSpinner"] > div { border-top-color: #00D4FF !important; }
+
+/* Slider thumb */
+[data-baseweb="slider"] [role="slider"] { background: #00D4FF !important; border-color: #00D4FF !important; }
+
+/* Multiselect */
+[data-baseweb="tag"]                  { background: rgba(0,212,255,0.12) !important; border-color: rgba(0,212,255,0.25) !important; }
+[data-baseweb="tag"] span             { color: #00D4FF !important; }
+
+/* Page title */
+h1 { color: #E6EDF3 !important; font-weight: 700 !important; letter-spacing: -0.3px; }
+h2 { color: #C9D1D9 !important; }
+h3 { color: #8B949E !important; }
+
+/* Caption / subtitle */
+[data-testid="stCaptionContainer"] { color: #4D5966 !important; font-size: 0.78rem !important; }

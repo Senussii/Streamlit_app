@@ -1,16 +1,27 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  SUPPLY CHAIN INTELLIGENCE PLATFORM                                          ║
+║  SUPPLY CHAIN INTELLIGENCE PLATFORM  v2.0                                    ║
 ║  End-to-End Predictive Analytics · Galaxy Schema DWH · ML-Powered            ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 Modules
   1. Executive Dashboard   — KPIs + revenue / margin overview
-  2. Demand Forecasting    — Gradient Boosting demand prediction
-  3. Inventory Risk        — GBM stockout risk classifier
+  2. Demand Forecasting    — LightGBM auto-regressive demand prediction
+  3. Inventory Risk        — LightGBM stockout risk classifier
   4. Customer Intelligence — Churn predictor + RFM segmentation
   5. Supplier Analytics    — Supplier quality scoring + fulfillment heatmap
   6. Anomaly Detection     — Isolation Forest on financial transactions
+
+v2 changes to app.py
+  • Data loading moved before the sidebar so the status panel can show
+    live record/SKU/customer counts on every page.
+  • All six ML build calls wrapped in @st.cache_data so models train once
+    per session; subsequent visits are instant.
+  • Sidebar completely redesigned: animated brand header, live data-health
+    panel, restyled radio nav (CSS-only, no JS), model performance metrics
+    that populate as the user visits pages, and a pinned footer.
+  • Model metrics stored in st.session_state.model_metrics after each
+    training run and surfaced in the sidebar.
 """
 
 import sys, os
@@ -31,20 +42,22 @@ import charts as ch
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Supply Chain Intelligence Platform",
-    page_icon="🔗",
+    page_title="Supply Chain Intelligence",
+    page_icon="⬡",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ── Global CSS ────────────────────────────────────────────────────────────────
+# ── Inject CSS ────────────────────────────────────────────────────────────────
 _css_path = os.path.join(os.path.dirname(__file__), "style.css")
 if os.path.exists(_css_path):
     with open(_css_path) as _f:
         st.markdown(f"<style>{_f.read()}</style>", unsafe_allow_html=True)
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# HELPERS
+# ══════════════════════════════════════════════════════════════════════════════
 def metric_card(label, value, delta_str="", prefix="", suffix=""):
     delta_html = ""
     if delta_str:
@@ -64,31 +77,14 @@ def section(title, icon=""):
     """, unsafe_allow_html=True)
 
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("""
-    <div style="text-align:center;padding:16px 0 8px">
-        <div style="font-size:2rem">🔗</div>
-        <div style="font-size:1.1rem;font-weight:700;color:#00D4FF">InsightAI</div>
-        <div style="font-size:0.75rem;color:#8B949E">ML Analytics</div>
-    </div>
-    <hr style="border-color:#30363D;margin:8px 0 16px">
-    """, unsafe_allow_html=True)
-
-    page = st.radio(
-        "Navigation",
-        ["🏠 Executive Dashboard",
-         "📈 Demand Forecasting",
-         "📦 Inventory Risk",
-         "👥 Customer Intelligence",
-         "🏭 Supplier Analytics",
-         "🚨 Anomaly Detection"],
-        label_visibility="collapsed",
-    )
+# ── Session state init ────────────────────────────────────────────────────────
+if "model_metrics" not in st.session_state:
+    st.session_state.model_metrics = {}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# DATA LOADING (cached)
+# DATA LOADING  (cached — runs once per session)
+# Moved above the sidebar so the status panel has live counts.
 # ══════════════════════════════════════════════════════════════════════════════
 @st.cache_data(show_spinner=False)
 def get_all_data():
@@ -100,8 +96,137 @@ def get_all_data():
     dims    = load_dimensions()
     return sale, inv_raw, pur, mv, txn, dims
 
+
 with st.spinner("Loading Supply Chain Data Warehouse…"):
     sale, inv_raw, pur, mv, txn, dims = get_all_data()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CACHED MODEL WRAPPERS
+# Each model is trained once per unique set of inputs; subsequent page
+# visits retrieve results from cache instantly.
+# ══════════════════════════════════════════════════════════════════════════════
+@st.cache_data(show_spinner=False)
+def _forecast(sale, horizon):
+    return build_demand_forecast(sale, horizon_months=horizon)
+
+@st.cache_data(show_spinner=False)
+def _stockout(inv_raw, mv):
+    return build_stockout_classifier(inv_raw, mv)
+
+@st.cache_data(show_spinner=False)
+def _churn(sale):
+    return build_churn_predictor(sale)
+
+@st.cache_data(show_spinner=False)
+def _supplier(pur, supplier_dim):
+    return build_supplier_scorer(pur, supplier_dim)
+
+@st.cache_data(show_spinner=False)
+def _anomaly(txn):
+    return build_anomaly_detector(txn)
+
+@st.cache_data(show_spinner=False)
+def _segments(sale):
+    return build_customer_segments(sale)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SIDEBAR  v2
+# ══════════════════════════════════════════════════════════════════════════════
+with st.sidebar:
+
+    # ── Brand header ──────────────────────────────────────────────────────────
+    st.markdown("""
+    <div class="sb-brand">
+        <div class="sb-brand-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"
+                 xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 2L3 6.5V15.5L11 20L19 15.5V6.5L11 2Z"
+                      stroke="#00D4FF" stroke-width="1.3" stroke-linejoin="round"/>
+                <path d="M11 2L11 20" stroke="#7B2FBE" stroke-width="1" opacity="0.6"/>
+                <path d="M3 6.5L19 6.5" stroke="#00C49A" stroke-width="1" opacity="0.5"/>
+                <circle cx="11" cy="11" r="2.5" fill="#00D4FF" opacity="0.9"/>
+            </svg>
+        </div>
+        <div class="sb-brand-text">
+            <div class="sb-brand-name">SupplyIQ</div>
+            <div class="sb-brand-tagline">Intelligence Platform</div>
+        </div>
+        <div class="sb-live-dot" title="Data warehouse connected"></div>
+    </div>
+    <div class="sb-divider"></div>
+    """, unsafe_allow_html=True)
+
+    # ── Live data-health panel ────────────────────────────────────────────────
+    total_records = len(sale) + len(inv_raw) + len(pur) + len(mv) + len(txn)
+    n_skus        = sale["Stock Item Key"].nunique() if "Stock Item Key" in sale.columns else 0
+    n_customers   = sale["Customer Key"].nunique()   if "Customer Key"   in sale.columns else 0
+
+    st.markdown(f"""
+    <div class="sb-status">
+        <div class="sb-status-head">
+            <div class="sb-status-dot"></div>
+            <span class="sb-status-label">Data Warehouse · Live</span>
+        </div>
+        <div class="sb-status-grid">
+            <div class="sb-stat">
+                <div class="sb-stat-val">{total_records/1e3:.0f}K</div>
+                <div class="sb-stat-lbl">Records</div>
+            </div>
+            <div class="sb-stat">
+                <div class="sb-stat-val">{n_skus}</div>
+                <div class="sb-stat-lbl">SKUs</div>
+            </div>
+            <div class="sb-stat">
+                <div class="sb-stat-val">{n_customers}</div>
+                <div class="sb-stat-lbl">Customers</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Navigation ────────────────────────────────────────────────────────────
+    st.markdown('<div class="sb-section-label">Modules</div>', unsafe_allow_html=True)
+
+    page = st.radio(
+        "Navigation",
+        [
+            "🏠 Executive Dashboard",
+            "📈 Demand Forecasting",
+            "📦 Inventory Risk",
+            "👥 Customer Intelligence",
+            "🏭 Supplier Analytics",
+            "🚨 Anomaly Detection",
+        ],
+        label_visibility="collapsed",
+    )
+
+    # ── Model performance panel (populates as user visits pages) ──────────────
+    if st.session_state.model_metrics:
+        st.markdown('<div class="sb-divider" style="margin-top:12px"></div>',
+                    unsafe_allow_html=True)
+        st.markdown('<div class="sb-section-label">Model Performance</div>',
+                    unsafe_allow_html=True)
+
+        rows_html = ""
+        for k, (v, quality) in st.session_state.model_metrics.items():
+            cls = {"good": "good", "warn": "warn", "": ""}[quality]
+            rows_html += f"""
+            <div class="sb-metric-row">
+                <span class="sb-metric-name">{k}</span>
+                <span class="sb-metric-val {cls}">{v}</span>
+            </div>"""
+        st.markdown(f'<div class="sb-metrics">{rows_html}</div>',
+                    unsafe_allow_html=True)
+
+    # ── Footer ────────────────────────────────────────────────────────────────
+    st.markdown("""
+    <div class="sb-footer">
+        <div class="sb-footer-line">Galaxy Schema · FY 2013–2016</div>
+        <div class="sb-footer-line">6 ML Engines · 14 Tables · v2.0</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -118,7 +243,7 @@ if page == "🏠 Executive Dashboard":
     total_skus   = sale["Stock Item Key"].nunique()
     avg_order_v  = sale["Total Including Tax"].mean()
 
-    c1,c2,c3,c4,c5,c6 = st.columns(6)
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1: metric_card("Total Revenue",   f"${total_rev/1e6:.1f}M")
     with c2: metric_card("Total Profit",    f"${total_profit/1e6:.1f}M")
     with c3: metric_card("Gross Margin",    f"{margin_pct:.1f}", suffix="%")
@@ -177,19 +302,27 @@ if page == "🏠 Executive Dashboard":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📈 Demand Forecasting":
     st.title("Demand Forecasting")
-    st.caption("Gradient Boosting · Extended Lag & Rolling Features · Per Stock Category")
+    st.caption("LightGBM / HistGradientBoosting · Auto-regressive · Per Stock Category")
 
     _, col_h = st.columns([3, 1])
     with col_h:
         horizon = st.slider("Forecast Horizon (months)", 1, 12, 3)
 
     with st.spinner("Training demand forecast model…"):
-        info = build_demand_forecast(sale, horizon_months=horizon)
+        info = _forecast(sale, horizon)
 
-    m1, m2, m3 = st.columns(3)
-    with m1: metric_card("MAPE",     f"{info['mape']:.1f}", suffix="%")
-    with m2: metric_card("R² Score", f"{info['r2']:.3f}")
-    with m3: metric_card("Horizon",  f"{horizon}", suffix=" months")
+    # store metrics in sidebar
+    q_mape = "good" if info["mape"] < 10 else "warn" if info["mape"] < 20 else ""
+    q_r2   = "good" if info["r2"]   > 0.7 else "warn" if info["r2"] > 0.4 else ""
+    st.session_state.model_metrics["Demand MAPE"]    = (f"{info['mape']:.1f}%",  q_mape)
+    st.session_state.model_metrics["Demand R²"]      = (f"{info['r2']:.3f}",     q_r2)
+    st.session_state.model_metrics["Demand CV-MAPE"] = (f"{info['cv_mape']:.1f}%", q_mape)
+
+    m1, m2, m3, m4 = st.columns(4)
+    with m1: metric_card("MAPE",        f"{info['mape']:.1f}",     suffix="%")
+    with m2: metric_card("R² Score",    f"{info['r2']:.3f}")
+    with m3: metric_card("CV MAPE",     f"{info['cv_mape']:.1f}",  suffix="%")
+    with m4: metric_card("Horizon",     f"{horizon}",              suffix=" months")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -240,10 +373,10 @@ elif page == "📈 Demand Forecasting":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📦 Inventory Risk":
     st.title("Inventory Risk Intelligence")
-    st.caption("Gradient Boosting Classifier · Stockout Risk · Reorder Alerts")
+    st.caption("LightGBM Classifier · Corrected Monthly Velocity · Stockout Alerts")
 
     with st.spinner("Running stockout risk model…"):
-        inv_info = build_stockout_classifier(inv_raw, mv)
+        inv_info = _stockout(inv_raw, mv)
 
     inv_df = inv_info["df"]
 
@@ -251,11 +384,15 @@ elif page == "📦 Inventory Risk":
     medium    = (inv_df["Predicted_Risk_Name"] == "MEDIUM").sum()
     stock_val = inv_df["Stock Value"].sum()
 
+    if inv_info["auc"]:
+        q = "good" if inv_info["auc"] > 0.85 else "warn"
+        st.session_state.model_metrics["Stockout AUC"] = (f"{inv_info['auc']:.3f}", q)
+
     k1, k2, k3, k4 = st.columns(4)
-    with k1: metric_card("Total SKUs",       f"{len(inv_df):,}")
-    with k2: metric_card("HIGH Risk SKUs",   f"{high}",   delta_str=f"+{high} need action")
-    with k3: metric_card("MEDIUM Risk SKUs", f"{medium}")
-    with k4: metric_card("Total Stock Value",f"${stock_val/1e6:.1f}M")
+    with k1: metric_card("Total SKUs",        f"{len(inv_df):,}")
+    with k2: metric_card("HIGH Risk SKUs",    f"{high}",   delta_str=f"+{high} need action")
+    with k3: metric_card("MEDIUM Risk SKUs",  f"{medium}")
+    with k4: metric_card("Total Stock Value", f"${stock_val/1e6:.1f}M")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -270,16 +407,18 @@ elif page == "📦 Inventory Risk":
         risk_cnt = inv_df["Predicted_Risk_Name"].value_counts().reset_index()
         risk_cnt.columns = ["Risk", "Count"]
         fig_pie = px.pie(risk_cnt, names="Risk", values="Count", color="Risk",
-                         color_discrete_map={"HIGH": "#FF4C6E", "MEDIUM": "#FFD700", "LOW": "#00C49A"},
+                         color_discrete_map={"HIGH": "#FF4C6E", "MEDIUM": "#FFD700",
+                                             "LOW": "#00C49A"},
                          template="plotly_dark")
         fig_pie.update_layout(paper_bgcolor="#0E1117", font_color="#E0E0E0",
                               legend=dict(bgcolor="rgba(0,0,0,0)"))
         st.plotly_chart(fig_pie, use_container_width=True)
 
-    section("🚨 HIGH Risk SKUs — Immediate Reorder Needed", "⚠️")
+    section("HIGH Risk SKUs — Immediate Reorder Needed", "⚠️")
     high_df = (inv_df[inv_df["Predicted_Risk_Name"] == "HIGH"]
                [["Stock Item", "Stock Category", "Subcategory", "Quantity On Hand",
-                 "Reorder Level", "Target Stock Level", "Stock Value", "Lead Time Days", "Availability"]]
+                 "Reorder Level", "Target Stock Level", "Stock Value",
+                 "Lead Time Days", "Availability"]]
                .sort_values("Quantity On Hand"))
     st.dataframe(high_df.style.format({
         "Quantity On Hand":   "{:,.0f}",
@@ -314,19 +453,24 @@ elif page == "👥 Customer Intelligence":
 
     with tab1:
         with st.spinner("Training churn prediction model…"):
-            churn_info = build_churn_predictor(sale)
+            churn_info = _churn(sale)
 
         rfm          = churn_info["rfm"]
         churn_count  = rfm["Churn_Pred"].sum()
         active_count = (rfm["Churn_Pred"] == 0).sum()
         churn_rate   = rfm["Churn_Pred"].mean() * 100
 
+        if churn_info["auc"]:
+            q = "good" if churn_info["auc"] > 0.80 else "warn"
+            st.session_state.model_metrics["Churn AUC"] = (f"{churn_info['auc']:.3f}", q)
+
         k1, k2, k3, k4 = st.columns(4)
-        with k1: metric_card("Total Customers",  f"{len(rfm):,}")
+        with k1: metric_card("Total Customers",   f"{len(rfm):,}")
         with k2: metric_card("At-Risk Customers", f"{churn_count:,}",
                               delta_str=f"⚠ {churn_rate:.1f}% churn rate")
         with k3: metric_card("Active Customers",  f"{active_count:,}")
-        with k4: metric_card("ROC-AUC", f"{churn_info['auc']:.3f}" if churn_info["auc"] else "N/A")
+        with k4: metric_card("ROC-AUC",
+                              f"{churn_info['auc']:.3f}" if churn_info["auc"] else "N/A")
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -348,18 +492,18 @@ elif page == "👥 Customer Intelligence":
                      "Avg_Margin", "Churn_Prob"]]
                    .rename(columns={"Monetary": "Total Revenue ($)",
                                     "Churn_Prob": "Churn Probability"}))
-        at_risk["Churn Probability"]  = (at_risk["Churn Probability"] * 100).round(1)
-        at_risk["Total Revenue ($)"]  = at_risk["Total Revenue ($)"].round(0)
+        at_risk["Churn Probability"] = (at_risk["Churn Probability"] * 100).round(1)
+        at_risk["Total Revenue ($)"] = at_risk["Total Revenue ($)"].round(0)
         st.dataframe(at_risk.style.format({
-            "Total Revenue ($)":  "${:,.0f}",
-            "Churn Probability":  "{:.1f}%",
-            "Avg_Margin":         "{:.1f}%",
+            "Total Revenue ($)": "${:,.0f}",
+            "Churn Probability": "{:.1f}%",
+            "Avg_Margin":        "{:.1f}%",
         }).background_gradient(subset=["Churn Probability"], cmap="RdYlGn_r"),
             use_container_width=True, height=300)
 
     with tab2:
         with st.spinner("Segmenting customers via KMeans…"):
-            seg_info = build_customer_segments(sale)
+            seg_info = _segments(sale)
 
         rfm_seg = seg_info["rfm"]
         section("Customer RFM Segmentation (3D)", "🌐")
@@ -385,16 +529,20 @@ elif page == "👥 Customer Intelligence":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🏭 Supplier Analytics":
     st.title("Supplier Analytics & Quality Scoring")
-    st.caption("Random Forest Quality Model · Fulfillment Heatmap · Supplier Benchmarking")
+    st.caption("Random Forest · Hold-out R² · Fulfillment Heatmap · Benchmarking")
 
     with st.spinner("Scoring suppliers…"):
-        sup_info = build_supplier_scorer(pur, dims["supplier"])
+        sup_info = _supplier(pur, dims["supplier"])
 
     sup_df     = sup_info["df"]
     avg_score  = sup_df["Quality_Score"].mean()
     top_sup    = sup_df.loc[sup_df["Quality_Score"].idxmax(), "Supplier"]
     low_fulf   = sup_df[sup_df["Avg_Fulfillment"] < 90]["Supplier"].count()
     grade_a    = (sup_df["Grade"] == "A").sum()
+
+    if sup_info.get("test_r2") is not None:
+        q = "good" if sup_info["test_r2"] > 0.7 else "warn"
+        st.session_state.model_metrics["Supplier R²"] = (f"{sup_info['test_r2']:.3f}", q)
 
     k1, k2, k3, k4 = st.columns(4)
     with k1: metric_card("Avg Quality Score",         f"{avg_score:.0f}", suffix="/100")
@@ -437,20 +585,25 @@ elif page == "🏭 Supplier Analytics":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🚨 Anomaly Detection":
     st.title("Financial Transaction Anomaly Detection")
-    st.caption("Isolation Forest · 5% Contamination · Multi-feature Anomaly Scoring")
+    st.caption("Isolation Forest · RobustScaler · Log-transformed Features · 5% Contamination")
 
     with st.spinner("Running Isolation Forest on transactions…"):
-        anom_info = build_anomaly_detector(txn)
+        anom_info = _anomaly(txn)
 
     anom_df = anom_info["df"]
 
+    rate_q = "good" if anom_info["anomaly_rate"] < 6 else "warn"
+    st.session_state.model_metrics["Anomaly Rate"] = (
+        f"{anom_info['anomaly_rate']:.1f}%", rate_q
+    )
+
     k1, k2, k3, k4 = st.columns(4)
-    with k1: metric_card("Total Transactions",   f"{len(anom_df):,}")
-    with k2: metric_card("Anomalies Detected",    f"{anom_info['anomaly_count']:,}",
+    with k1: metric_card("Total Transactions",  f"{len(anom_df):,}")
+    with k2: metric_card("Anomalies Detected",  f"{anom_info['anomaly_count']:,}",
                           delta_str=f"⚠ {anom_info['anomaly_rate']:.1f}% rate")
     with k3: metric_card("Anomalous $ Exposure",
                           f"${anom_df[anom_df['Is_Anomaly']]['Total Including Tax'].abs().sum()/1e3:.0f}K")
-    with k4: metric_card("Normal Transactions",   f"{(~anom_df['Is_Anomaly']).sum():,}")
+    with k4: metric_card("Normal Transactions",  f"{(~anom_df['Is_Anomaly']).sum():,}")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -470,7 +623,8 @@ elif page == "🚨 Anomaly Detection":
         fig_score.update_layout(
             template="plotly_dark", paper_bgcolor="#0E1117", plot_bgcolor="#0E1117",
             font_color="#E0E0E0", barmode="overlay",
-            title=dict(text="Isolation Forest Score Distribution", font=dict(color="#00D4FF")),
+            title=dict(text="Isolation Forest Score Distribution",
+                       font=dict(color="#00D4FF")),
             xaxis_title="Anomaly Score", yaxis_title="Count",
             legend=dict(bgcolor="rgba(0,0,0,0)"))
         st.plotly_chart(fig_score, use_container_width=True)
@@ -489,7 +643,7 @@ elif page == "🚨 Anomaly Detection":
                                          font=dict(color="#00D4FF")))
         st.plotly_chart(fig_pm, use_container_width=True)
 
-    section("🚨 Top Anomalous Transactions", "⚠️")
+    section("Top Anomalous Transactions", "⚠️")
     top_anom = (anom_df[anom_df["Is_Anomaly"]]
                 .sort_values("Anomaly_Score")
                 .head(100)
