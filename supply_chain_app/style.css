@@ -248,13 +248,13 @@ html, body, [class*="css"] {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   Metric cards
+   Metric cards  — compact so the KPI row stays ≤ 80 px tall
    ══════════════════════════════════════════════════════════════════════════ */
 .metric-card {
     background: linear-gradient(135deg, #101820 0%, #141E2A 100%);
     border: 1px solid #1C2430;
-    border-radius: 12px;
-    padding: 16px 18px 14px;
+    border-radius: 10px;
+    padding: 10px 14px 9px;          /* ↓ was 16/18/14 */
     text-align: center;
     position: relative;
     overflow: hidden;
@@ -267,37 +267,36 @@ html, body, [class*="css"] {
     background: linear-gradient(90deg, #00D4FF 0%, #7B2FBE 60%, transparent 100%);
 }
 .metric-value {
-    font-size: 1.9rem; font-weight: 700;
+    font-size: 1.55rem;              /* ↓ was 1.9 rem */
+    font-weight: 700;
     color: #00D4FF;
     font-family: 'JetBrains Mono', monospace;
-    letter-spacing: -0.5px;
-    line-height: 1.1;
+    letter-spacing: -0.4px;
+    line-height: 1.15;
 }
 .metric-label {
-    font-size: 0.72rem; color: #5E6E7E;
-    margin-top: 5px; text-transform: uppercase;
-    letter-spacing: 0.7px; font-weight: 500;
+    font-size: 0.65rem; color: #5E6E7E;
+    margin-top: 3px; text-transform: uppercase;
+    letter-spacing: 0.6px; font-weight: 500;
 }
-.metric-delta { font-size: 0.8rem; margin-top: 5px; }
+.metric-delta { font-size: 0.7rem; margin-top: 3px; }
 .delta-pos    { color: #00C49A; }
 .delta-neg    { color: #FF4C6E; }
 
+/* Tighten Streamlit page title and caption to reclaim vertical space */
+h1 { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+[data-testid="stCaptionContainer"] { margin-top: 0 !important; margin-bottom: 6px !important; }
+
 /* ══════════════════════════════════════════════════════════════════════════
-   Section headers
+   Inline captions above tables (replaces heavyweight section headers)
    ══════════════════════════════════════════════════════════════════════════ */
-.section-header {
-    background: linear-gradient(90deg, rgba(0, 212, 255, 0.07), transparent);
-    border-left: 2px solid #00D4FF;
-    padding: 7px 14px;
-    border-radius: 0 7px 7px 0;
-    margin-bottom: 14px;
-}
-.section-header h3 {
-    color: #00D4FF !important;
-    margin: 0 !important;
-    font-size: 1rem !important;
+[data-testid="stCaptionContainer"] p {
+    font-size: 0.72rem !important;
     font-weight: 600 !important;
-    letter-spacing: 0.1px;
+    color: #5E6E7E !important;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 4px 0 3px !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

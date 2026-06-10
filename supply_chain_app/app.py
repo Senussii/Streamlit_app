@@ -1,27 +1,16 @@
 """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║  SUPPLY CHAIN INTELLIGENCE PLATFORM  v2.0                                    ║
-║  End-to-End Predictive Analytics · Galaxy Schema DWH · ML-Powered            ║
-╚══════════════════════════════════════════════════════════════════════════════╝
+Supply Chain Intelligence Platform  v2.1
+No-scroll layout: every page fits in one viewport (≈ 900 px usable height).
 
-Modules
-  1. Executive Dashboard   — KPIs + revenue / margin overview
-  2. Demand Forecasting    — LightGBM auto-regressive demand prediction
-  3. Inventory Risk        — LightGBM stockout risk classifier
-  4. Customer Intelligence — Churn predictor + RFM segmentation
-  5. Supplier Analytics    — Supplier quality scoring + fulfillment heatmap
-  6. Anomaly Detection     — Isolation Forest on financial transactions
-
-v2 changes to app.py
-  • Data loading moved before the sidebar so the status panel can show
-    live record/SKU/customer counts on every page.
-  • All six ML build calls wrapped in @st.cache_data so models train once
-    per session; subsequent visits are instant.
-  • Sidebar completely redesigned: animated brand header, live data-health
-    panel, restyled radio nav (CSS-only, no JS), model performance metrics
-    that populate as the user visits pages, and a pinned footer.
-  • Model metrics stored in st.session_state.model_metrics after each
-    training run and surfaced in the sidebar.
+Layout rules
+────────────
+• _c(fig, h)  — compact helper; sets height + tight margins on any Plotly fig.
+• Max 2 chart rows per page / per tab.
+• Charts in 2–3 st.columns; never full-width unless it's the only row.
+• Slider merged into the KPI row (saves ~50 px).
+• <br> spacers removed; section() headers removed (charts have own titles).
+• Tables capped at height=185.
+• Heavy pages (Supplier, Executive Dashboard) split into tabs.
 """
 
 import sys, os
@@ -32,6 +21,8 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+import gc
+import hashlib
 
 from data_loader import (mart_sales, mart_inventory, mart_purchase,
                           mart_movement, mart_transaction, load_dimensions)
@@ -58,6 +49,14 @@ if os.path.exists(_css_path):
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
+_TIGHT = dict(l=32, r=14, t=36, b=26)   # tight margins for compact charts
+
+def _c(fig, h: int = 255):
+    """Apply compact height + tight margins to any Plotly figure."""
+    fig.update_layout(height=h, margin=_TIGHT)
+    return fig
+
+
 def metric_card(label, value, delta_str="", prefix="", suffix=""):
     delta_html = ""
     if delta_str:
@@ -71,29 +70,39 @@ def metric_card(label, value, delta_str="", prefix="", suffix=""):
     </div>""", unsafe_allow_html=True)
 
 
-def section(title, icon=""):
-    st.markdown(f"""
-    <div class="section-header"><h3>{icon} {title}</h3></div>
-    """, unsafe_allow_html=True)
+# ── Fast DataFrame hash for @st.cache_data (avoids hashing 228 K rows) ───────
+def _fast_hash(df: pd.DataFrame) -> int:
+    step   = max(1, len(df) // 200)
+    sample = pd.util.hash_pandas_object(df.iloc[::step]).values.tobytes()
+    return int(hashlib.md5(sample).hexdigest(), 16)
 
 
-# ── Session state init ────────────────────────────────────────────────────────
+# ── Session state ─────────────────────────────────────────────────────────────
 if "model_metrics" not in st.session_state:
     st.session_state.model_metrics = {}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DATA LOADING  (cached — runs once per session)
-# Moved above the sidebar so the status panel has live counts.
 # ══════════════════════════════════════════════════════════════════════════════
+def _downcast(df: pd.DataFrame) -> pd.DataFrame:
+    """Reduce memory ~40 % by downcasting numeric columns."""
+    for col in df.select_dtypes("float64").columns:
+        df[col] = pd.to_numeric(df[col], downcast="float")
+    for col in df.select_dtypes("int64").columns:
+        df[col] = pd.to_numeric(df[col], downcast="integer")
+    return df
+
+
 @st.cache_data(show_spinner=False)
 def get_all_data():
-    sale    = mart_sales()
-    inv_raw = mart_inventory()
-    pur     = mart_purchase()
-    mv      = mart_movement()
-    txn     = mart_transaction()
+    sale    = _downcast(mart_sales())
+    inv_raw = _downcast(mart_inventory())
+    pur     = _downcast(mart_purchase())
+    mv      = _downcast(mart_movement())
+    txn     = _downcast(mart_transaction())
     dims    = load_dimensions()
+    gc.collect()
     return sale, inv_raw, pur, mv, txn, dims
 
 
@@ -103,45 +112,69 @@ with st.spinner("Loading Supply Chain Data Warehouse…"):
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CACHED MODEL WRAPPERS
-# Each model is trained once per unique set of inputs; subsequent page
-# visits retrieve results from cache instantly.
 # ══════════════════════════════════════════════════════════════════════════════
 @st.cache_data(show_spinner=False)
-def _forecast(sale, horizon):
-    return build_demand_forecast(sale, horizon_months=horizon)
+def _monthly_agg(sale):
+    """Pre-aggregate 228 K rows → ~800 rows; tiny hash for _forecast."""
+    needed = ["Calendar Year","Calendar Month Number","Stock Category",
+              "Quantity","Unit Price","Sale Key"]
+    cols = [c for c in needed if c in sale.columns]
+    return (
+        sale[cols]
+        .dropna(subset=["Calendar Year","Calendar Month Number","Quantity"])
+        .groupby(["Calendar Year","Calendar Month Number","Stock Category"])
+        .agg(Total_Qty=("Quantity","sum"),
+             Avg_Price=("Unit Price","mean"),
+             Num_Transactions=("Sale Key","count"))
+        .reset_index()
+        .sort_values(["Stock Category","Calendar Year","Calendar Month Number"])
+        .reset_index(drop=True)
+    )
 
-@st.cache_data(show_spinner=False)
+
+@st.cache_data(show_spinner=False, max_entries=12)
+def _forecast(monthly_agg, horizon):
+    return build_demand_forecast(monthly_agg, horizon_months=horizon)
+
+
+@st.cache_data(show_spinner=False, max_entries=2,
+               hash_funcs={pd.DataFrame: _fast_hash})
 def _stockout(inv_raw, mv):
     return build_stockout_classifier(inv_raw, mv)
 
-@st.cache_data(show_spinner=False)
+
+@st.cache_data(show_spinner=False, max_entries=2,
+               hash_funcs={pd.DataFrame: _fast_hash})
 def _churn(sale):
     return build_churn_predictor(sale)
 
-@st.cache_data(show_spinner=False)
+
+@st.cache_data(show_spinner=False, max_entries=2,
+               hash_funcs={pd.DataFrame: _fast_hash})
 def _supplier(pur, supplier_dim):
     return build_supplier_scorer(pur, supplier_dim)
 
-@st.cache_data(show_spinner=False)
+
+@st.cache_data(show_spinner=False, max_entries=2,
+               hash_funcs={pd.DataFrame: _fast_hash})
 def _anomaly(txn):
     return build_anomaly_detector(txn)
 
-@st.cache_data(show_spinner=False)
+
+@st.cache_data(show_spinner=False, max_entries=2,
+               hash_funcs={pd.DataFrame: _fast_hash})
 def _segments(sale):
     return build_customer_segments(sale)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SIDEBAR  v2
+# SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-
-    # ── Brand header ──────────────────────────────────────────────────────────
     st.markdown("""
     <div class="sb-brand">
         <div class="sb-brand-icon">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"
-                 xmlns="http://www.w3.org/2000/svg">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                 <path d="M11 2L3 6.5V15.5L11 20L19 15.5V6.5L11 2Z"
                       stroke="#00D4FF" stroke-width="1.3" stroke-linejoin="round"/>
                 <path d="M11 2L11 20" stroke="#7B2FBE" stroke-width="1" opacity="0.6"/>
@@ -153,12 +186,11 @@ with st.sidebar:
             <div class="sb-brand-name">SupplyIQ</div>
             <div class="sb-brand-tagline">Intelligence Platform</div>
         </div>
-        <div class="sb-live-dot" title="Data warehouse connected"></div>
+        <div class="sb-live-dot"></div>
     </div>
     <div class="sb-divider"></div>
     """, unsafe_allow_html=True)
 
-    # ── Live data-health panel ────────────────────────────────────────────────
     total_records = len(sale) + len(inv_raw) + len(pur) + len(mv) + len(txn)
     n_skus        = sale["Stock Item Key"].nunique() if "Stock Item Key" in sale.columns else 0
     n_customers   = sale["Customer Key"].nunique()   if "Customer Key"   in sale.columns else 0
@@ -170,71 +202,57 @@ with st.sidebar:
             <span class="sb-status-label">Data Warehouse · Live</span>
         </div>
         <div class="sb-status-grid">
-            <div class="sb-stat">
-                <div class="sb-stat-val">{total_records/1e3:.0f}K</div>
-                <div class="sb-stat-lbl">Records</div>
-            </div>
-            <div class="sb-stat">
-                <div class="sb-stat-val">{n_skus}</div>
-                <div class="sb-stat-lbl">SKUs</div>
-            </div>
-            <div class="sb-stat">
-                <div class="sb-stat-val">{n_customers}</div>
-                <div class="sb-stat-lbl">Customers</div>
-            </div>
+            <div class="sb-stat"><div class="sb-stat-val">{total_records/1e3:.0f}K</div>
+                <div class="sb-stat-lbl">Records</div></div>
+            <div class="sb-stat"><div class="sb-stat-val">{n_skus}</div>
+                <div class="sb-stat-lbl">SKUs</div></div>
+            <div class="sb-stat"><div class="sb-stat-val">{n_customers}</div>
+                <div class="sb-stat-lbl">Customers</div></div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Navigation ────────────────────────────────────────────────────────────
     st.markdown('<div class="sb-section-label">Modules</div>', unsafe_allow_html=True)
 
-    page = st.radio(
-        "Navigation",
-        [
-            "🏠 Executive Dashboard",
-            "📈 Demand Forecasting",
-            "📦 Inventory Risk",
-            "👥 Customer Intelligence",
-            "🏭 Supplier Analytics",
-            "🚨 Anomaly Detection",
-        ],
-        label_visibility="collapsed",
-    )
+    page = st.radio("Navigation", [
+        "🏠 Executive Dashboard",
+        "📈 Demand Forecasting",
+        "📦 Inventory Risk",
+        "👥 Customer Intelligence",
+        "🏭 Supplier Analytics",
+        "🚨 Anomaly Detection",
+    ], label_visibility="collapsed")
 
-    # ── Model performance panel (populates as user visits pages) ──────────────
     if st.session_state.model_metrics:
-        st.markdown('<div class="sb-divider" style="margin-top:12px"></div>',
+        st.markdown('<div class="sb-divider" style="margin-top:10px"></div>',
                     unsafe_allow_html=True)
         st.markdown('<div class="sb-section-label">Model Performance</div>',
                     unsafe_allow_html=True)
+        rows_html = "".join(
+            f'<div class="sb-metric-row">'
+            f'<span class="sb-metric-name">{k}</span>'
+            f'<span class="sb-metric-val {q}">{v}</span></div>'
+            for k, (v, q) in st.session_state.model_metrics.items()
+        )
+        st.markdown(f'<div class="sb-metrics">{rows_html}</div>', unsafe_allow_html=True)
 
-        rows_html = ""
-        for k, (v, quality) in st.session_state.model_metrics.items():
-            cls = {"good": "good", "warn": "warn", "": ""}[quality]
-            rows_html += f"""
-            <div class="sb-metric-row">
-                <span class="sb-metric-name">{k}</span>
-                <span class="sb-metric-val {cls}">{v}</span>
-            </div>"""
-        st.markdown(f'<div class="sb-metrics">{rows_html}</div>',
-                    unsafe_allow_html=True)
-
-    # ── Footer ────────────────────────────────────────────────────────────────
     st.markdown("""
     <div class="sb-footer">
         <div class="sb-footer-line">Galaxy Schema · FY 2013–2016</div>
-        <div class="sb-footer-line">6 ML Engines · 14 Tables · v2.0</div>
+        <div class="sb-footer-line">6 ML Engines · 14 Tables · v2.1</div>
     </div>
     """, unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 1 — EXECUTIVE DASHBOARD
+# Two tabs so every chart fits in one viewport without scrolling.
+# Tab 1 "Overview"   → KPIs + Revenue timeline + Category bar + Waterfall
+# Tab 2 "Territory"  → Territory bar + Top customers table
 # ══════════════════════════════════════════════════════════════════════════════
 if page == "🏠 Executive Dashboard":
     st.title("Executive Supply Chain Dashboard")
-    st.caption("Galaxy Schema · Real-time KPIs · FY2013-2016")
+    st.caption("Galaxy Schema · FY2013-2016 · Real-time KPIs")
 
     total_rev    = sale["Total Excluding Tax"].sum()
     total_profit = sale["Profit"].sum()
@@ -243,133 +261,151 @@ if page == "🏠 Executive Dashboard":
     total_skus   = sale["Stock Item Key"].nunique()
     avg_order_v  = sale["Total Including Tax"].mean()
 
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    with c1: metric_card("Total Revenue",   f"${total_rev/1e6:.1f}M")
-    with c2: metric_card("Total Profit",    f"${total_profit/1e6:.1f}M")
-    with c3: metric_card("Gross Margin",    f"{margin_pct:.1f}", suffix="%")
-    with c4: metric_card("Total Orders",    f"{total_orders:,}")
-    with c5: metric_card("Active SKUs",     f"{total_skus:,}")
-    with c6: metric_card("Avg Order Value", f"${avg_order_v:.0f}")
+    # ── KPI row ───────────────────────────────────────────────────────────────
+    k1, k2, k3, k4, k5, k6 = st.columns(6)
+    with k1: metric_card("Total Revenue",   f"${total_rev/1e6:.1f}M")
+    with k2: metric_card("Total Profit",    f"${total_profit/1e6:.1f}M")
+    with k3: metric_card("Gross Margin",    f"{margin_pct:.1f}",  suffix="%")
+    with k4: metric_card("Total Orders",    f"{total_orders:,}")
+    with k5: metric_card("Active SKUs",     f"{total_skus:,}")
+    with k6: metric_card("Avg Order Value", f"${avg_order_v:.0f}")
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    tab_ov, tab_te = st.tabs(["📊 Overview", "🗺️ Territory & Customers"])
 
-    col1, col2 = st.columns([3, 2])
-    with col1:
-        section("Revenue & Profit Trend", "📊")
-        st.plotly_chart(ch.revenue_timeline(sale),
-                        use_container_width=True, config={"displayModeBar": False})
-    with col2:
-        section("Category Performance", "🏷️")
-        st.plotly_chart(ch.sales_by_category(sale),
-                        use_container_width=True, config={"displayModeBar": False})
+    # ── Tab 1: Overview ───────────────────────────────────────────────────────
+    with tab_ov:
+        ca, cb, cc = st.columns([4, 3, 3])
+        with ca:
+            st.plotly_chart(_c(ch.revenue_timeline(sale), 258),
+                            use_container_width=True, config={"displayModeBar": False})
+        with cb:
+            st.plotly_chart(_c(ch.sales_by_category(sale), 258),
+                            use_container_width=True, config={"displayModeBar": False})
+        with cc:
+            st.plotly_chart(_c(ch.margin_waterfall(sale), 258),
+                            use_container_width=True, config={"displayModeBar": False})
 
-    col3, col4 = st.columns([3, 2])
-    with col3:
-        section("Revenue / COGS / Profit by Category", "💰")
-        st.plotly_chart(ch.margin_waterfall(sale),
-                        use_container_width=True, config={"displayModeBar": False})
-    with col4:
-        section("Top 10 Customers by Revenue", "🌟")
+    # ── Tab 2: Territory & Customers ─────────────────────────────────────────
+    with tab_te:
+        terr = (sale.groupby("Sales Territory")
+                .agg(Revenue=("Total Excluding Tax","sum"),
+                     Profit=("Profit","sum"))
+                .reset_index().dropna(subset=["Sales Territory"])
+                .sort_values("Revenue", ascending=False))
+        fig_t = px.bar(
+            terr, x="Sales Territory", y="Revenue",
+            color="Profit", color_continuous_scale="Viridis",
+            template="plotly_dark",
+            labels={"Revenue": "Revenue ($)", "Profit": "Profit ($)"})
+        fig_t.update_layout(
+            paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="#E0E0E0",
+            coloraxis_colorbar=dict(tickfont=dict(color="#E0E0E0")),
+            title=dict(text="Revenue by Sales Territory", font=dict(color="#00D4FF")))
+
         top_cust = (sale.groupby("Customer")
-                    .agg(Revenue=("Total Excluding Tax", "sum"),
-                         Profit=("Profit", "sum"))
+                    .agg(Revenue=("Total Excluding Tax","sum"),
+                         Profit=("Profit","sum"))
                     .reset_index()
-                    .sort_values("Revenue", ascending=False)
-                    .head(10))
-        st.dataframe(
-            top_cust.style.format({"Revenue": "${:,.0f}", "Profit": "${:,.0f}"}),
-            use_container_width=True, height=320)
+                    .sort_values("Revenue", ascending=False).head(10))
 
-    section("Revenue by Sales Territory", "🗺️")
-    terr = (sale.groupby("Sales Territory")
-            .agg(Revenue=("Total Excluding Tax", "sum"),
-                 Orders=("Sale Key", "count"),
-                 Profit=("Profit", "sum"))
-            .reset_index().dropna(subset=["Sales Territory"])
-            .sort_values("Revenue", ascending=False))
-    fig_t = px.bar(terr, x="Sales Territory", y="Revenue",
-                   color="Profit", color_continuous_scale="Viridis",
-                   template="plotly_dark",
-                   labels={"Revenue": "Revenue ($)", "Profit": "Profit ($)"})
-    fig_t.update_layout(paper_bgcolor="#0E1117", plot_bgcolor="#0E1117",
-                        font_color="#E0E0E0",
-                        coloraxis_colorbar=dict(tickfont=dict(color="#E0E0E0")))
-    st.plotly_chart(fig_t, use_container_width=True, config={"displayModeBar": False})
+        ct, cc2 = st.columns([3, 2])
+        with ct:
+            st.plotly_chart(_c(fig_t, 285),
+                            use_container_width=True, config={"displayModeBar": False})
+        with cc2:
+            st.caption("🌟 Top 10 Customers by Revenue")
+            st.dataframe(
+                top_cust.style.format({"Revenue": "${:,.0f}", "Profit": "${:,.0f}"}),
+                use_container_width=True, height=260)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 2 — DEMAND FORECASTING
+# Row 1: KPIs + horizon slider merged in one row (saves ~50 px)
+# Row 2: Forecast chart (full-width, 260 px)
+# Row 3: Feature importance | Forecast table | Actual vs Predicted  (3-up)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📈 Demand Forecasting":
     st.title("Demand Forecasting")
     st.caption("LightGBM / HistGradientBoosting · Auto-regressive · Per Stock Category")
 
-    _, col_h = st.columns([3, 1])
-    with col_h:
-        horizon = st.slider("Forecast Horizon (months)", 1, 12, 3)
+    # KPIs + slider in one row
+    km1, km2, km3, km4, ks = st.columns([1, 1, 1, 1, 2])
+
+    with ks:
+        horizon = st.slider("Forecast horizon (months)", 1, 12, 3, key="fc_horizon")
 
     with st.spinner("Training demand forecast model…"):
-        info = _forecast(sale, horizon)
+        info = _forecast(_monthly_agg(sale), horizon)
 
-    # store metrics in sidebar
-    q_mape = "good" if info["mape"] < 10 else "warn" if info["mape"] < 20 else ""
-    q_r2   = "good" if info["r2"]   > 0.7 else "warn" if info["r2"] > 0.4 else ""
-    st.session_state.model_metrics["Demand MAPE"]    = (f"{info['mape']:.1f}%",  q_mape)
-    st.session_state.model_metrics["Demand R²"]      = (f"{info['r2']:.3f}",     q_r2)
-    st.session_state.model_metrics["Demand CV-MAPE"] = (f"{info['cv_mape']:.1f}%", q_mape)
+    mape = info.get("mape", 0.0)
+    r2   = info.get("r2",   0.0)
+    q_mape = "good" if mape < 10 else "warn" if mape < 20 else ""
+    q_r2   = "good" if r2   > 0.7 else "warn" if r2   > 0.4 else ""
+    st.session_state.model_metrics["Demand MAPE"] = (f"{mape:.1f}%", q_mape)
+    st.session_state.model_metrics["Demand R²"]   = (f"{r2:.3f}",    q_r2)
 
-    m1, m2, m3, m4 = st.columns(4)
-    with m1: metric_card("MAPE",        f"{info['mape']:.1f}",     suffix="%")
-    with m2: metric_card("R² Score",    f"{info['r2']:.3f}")
-    with m3: metric_card("CV MAPE",     f"{info['cv_mape']:.1f}",  suffix="%")
-    with m4: metric_card("Horizon",     f"{horizon}",              suffix=" months")
+    with km1: metric_card("MAPE",     f"{mape:.1f}", suffix="%")
+    with km2: metric_card("R² Score", f"{r2:.3f}")
+    with km3: metric_card("Train pts",f"{len(info.get('actuals_df', []))}")
+    with km4: metric_card("Horizon",  f"{horizon}", suffix=" mo")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
+    # Row 2 — forecast chart
     cats     = sorted(sale["Stock Category"].dropna().unique())
-    selected = st.multiselect("Select Stock Categories to Forecast", cats, default=cats[:4])
-
+    selected = st.multiselect("Stock categories to forecast",
+                              cats, default=cats[:4], key="fc_cats")
     if selected:
-        section("Demand Forecast vs Actuals", "📈")
-        st.plotly_chart(ch.forecast_chart(info, selected), use_container_width=True)
+        st.plotly_chart(
+            _c(ch.forecast_chart(info, selected), 260),
+            use_container_width=True, config={"displayModeBar": False})
 
-        col_f1, col_f2 = st.columns(2)
-        with col_f1:
-            section("Feature Importance", "🔍")
-            st.plotly_chart(ch.feat_importance_chart(
-                info["feature_importance"], "Demand Model — Feature Importance"),
-                use_container_width=True)
-        with col_f2:
-            section("Forecast Table", "📋")
+    # Row 3 — diagnostics (always shown)
+    d1, d2, d3 = st.columns(3)
+
+    with d1:
+        st.plotly_chart(
+            _c(ch.feat_importance_chart(info["feature_importance"],
+               "Feature Importance"), 230),
+            use_container_width=True, config={"displayModeBar": False})
+
+    with d2:
+        st.caption("📋 Forecast Table")
+        if selected and not info["forecast_df"].empty:
             fc_show = (info["forecast_df"][info["forecast_df"]["Stock Category"].isin(selected)]
-                       [["Stock Category", "Forecast Year", "Forecast Month", "Predicted_Qty"]]
-                       .sort_values(["Stock Category", "Forecast Year", "Forecast Month"])
-                       .rename(columns={"Predicted_Qty": "Forecasted Units"}))
-            fc_show["Forecasted Units"] = fc_show["Forecasted Units"].round(0).astype(int)
-            st.dataframe(fc_show, use_container_width=True, height=320)
+                       [["Stock Category","Forecast Year","Forecast Month","Predicted_Qty"]]
+                       .sort_values(["Stock Category","Forecast Year","Forecast Month"])
+                       .rename(columns={"Predicted_Qty": "Units"}))
+            fc_show["Units"] = fc_show["Units"].round(0).astype(int)
+            st.dataframe(fc_show, use_container_width=True, height=215)
+        else:
+            st.info("Select categories above to see forecast values.")
 
-    section("Actual vs Predicted (Test Set)", "🎯")
-    fig_ap = go.Figure()
-    fig_ap.add_trace(go.Scatter(
-        x=info["test_true"], y=info["test_pred"],
-        mode="markers", marker=dict(color="#00D4FF", opacity=0.5, size=5),
-        name="Predictions"))
-    mn = min(info["test_true"].min(), info["test_pred"].min())
-    mx = max(info["test_true"].max(), info["test_pred"].max())
-    fig_ap.add_trace(go.Scatter(x=[mn, mx], y=[mn, mx],
-                                mode="lines", line=dict(color="#FF6B35", dash="dot"),
-                                name="Perfect Fit"))
-    fig_ap.update_layout(
-        template="plotly_dark", paper_bgcolor="#0E1117", plot_bgcolor="#0E1117",
-        font_color="#E0E0E0", xaxis_title="Actual Units", yaxis_title="Predicted Units",
-        title=dict(text=f"Actual vs Predicted — R²={info['r2']:.3f}",
-                   font=dict(color="#00D4FF")),
-        legend=dict(bgcolor="rgba(0,0,0,0)"))
-    st.plotly_chart(fig_ap, use_container_width=True)
+    with d3:
+        fig_ap = go.Figure()
+        fig_ap.add_trace(go.Scatter(
+            x=info["test_true"], y=info["test_pred"], mode="markers",
+            marker=dict(color="#00D4FF", opacity=0.45, size=4), name="Predictions"))
+        mn = float(min(info["test_true"].min(), info["test_pred"].min()))
+        mx = float(max(info["test_true"].max(), info["test_pred"].max()))
+        fig_ap.add_trace(go.Scatter(
+            x=[mn, mx], y=[mn, mx], mode="lines",
+            line=dict(color="#FF6B35", dash="dot", width=1.5), name="Perfect"))
+        fig_ap.update_layout(
+            template="plotly_dark", paper_bgcolor="#0E1117", plot_bgcolor="#0E1117",
+            font_color="#E0E0E0",
+            xaxis_title="Actual", yaxis_title="Predicted",
+            title=dict(text=f"Actual vs Predicted  R²={r2:.3f}",
+                       font=dict(color="#00D4FF", size=13)),
+            legend=dict(bgcolor="rgba(0,0,0,0)"))
+        st.plotly_chart(_c(fig_ap, 230),
+                        use_container_width=True, config={"displayModeBar": False})
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 3 — INVENTORY RISK
+# Row 1: 4 KPIs
+# Row 2: Risk matrix | Risk pie | Feature importance  (3-up, 255 px)
+# Row 3: HIGH-risk table | Classification report       (2-up, 185 px)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📦 Inventory Risk":
     st.title("Inventory Risk Intelligence")
@@ -378,8 +414,7 @@ elif page == "📦 Inventory Risk":
     with st.spinner("Running stockout risk model…"):
         inv_info = _stockout(inv_raw, mv)
 
-    inv_df = inv_info["df"]
-
+    inv_df    = inv_info["df"]
     high      = (inv_df["Predicted_Risk_Name"] == "HIGH").sum()
     medium    = (inv_df["Predicted_Risk_Name"] == "MEDIUM").sum()
     stock_val = inv_df["Stock Value"].sum()
@@ -388,144 +423,147 @@ elif page == "📦 Inventory Risk":
         q = "good" if inv_info["auc"] > 0.85 else "warn"
         st.session_state.model_metrics["Stockout AUC"] = (f"{inv_info['auc']:.3f}", q)
 
+    # Row 1 — KPIs
     k1, k2, k3, k4 = st.columns(4)
-    with k1: metric_card("Total SKUs",        f"{len(inv_df):,}")
-    with k2: metric_card("HIGH Risk SKUs",    f"{high}",   delta_str=f"+{high} need action")
-    with k3: metric_card("MEDIUM Risk SKUs",  f"{medium}")
-    with k4: metric_card("Total Stock Value", f"${stock_val/1e6:.1f}M")
+    with k1: metric_card("Total SKUs",       f"{len(inv_df):,}")
+    with k2: metric_card("HIGH Risk SKUs",   f"{high}", delta_str=f"+{high} need action")
+    with k3: metric_card("MEDIUM Risk SKUs", f"{medium}")
+    with k4: metric_card("Stock Value",      f"${stock_val/1e6:.1f}M")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    col1, col2 = st.columns([3, 2])
-    with col1:
-        section("Inventory Risk Matrix", "🎯")
+    # Row 2 — charts (3-up)
+    rc1, rc2, rc3 = st.columns([4, 2, 3])
+    with rc1:
         if "Monthly_Velocity" not in inv_df.columns:
             inv_df["Monthly_Velocity"] = 0
-        st.plotly_chart(ch.inventory_risk_scatter(inv_df), use_container_width=True)
-    with col2:
-        section("Risk Distribution", "📊")
+        st.plotly_chart(_c(ch.inventory_risk_scatter(inv_df), 255),
+                        use_container_width=True, config={"displayModeBar": False})
+    with rc2:
         risk_cnt = inv_df["Predicted_Risk_Name"].value_counts().reset_index()
         risk_cnt.columns = ["Risk", "Count"]
-        fig_pie = px.pie(risk_cnt, names="Risk", values="Count", color="Risk",
-                         color_discrete_map={"HIGH": "#FF4C6E", "MEDIUM": "#FFD700",
-                                             "LOW": "#00C49A"},
+        fig_pie = px.pie(risk_cnt, names="Risk", values="Count",
+                         color="Risk",
+                         color_discrete_map={"HIGH":"#FF4C6E","MEDIUM":"#FFD700","LOW":"#00C49A"},
                          template="plotly_dark")
-        fig_pie.update_layout(paper_bgcolor="#0E1117", font_color="#E0E0E0",
-                              legend=dict(bgcolor="rgba(0,0,0,0)"))
-        st.plotly_chart(fig_pie, use_container_width=True)
+        fig_pie.update_layout(
+            paper_bgcolor="#0E1117", font_color="#E0E0E0",
+            legend=dict(bgcolor="rgba(0,0,0,0)"),
+            title=dict(text="Risk Distribution", font=dict(color="#00D4FF", size=13)))
+        st.plotly_chart(_c(fig_pie, 255),
+                        use_container_width=True, config={"displayModeBar": False})
+    with rc3:
+        st.plotly_chart(_c(ch.feat_importance_chart(
+                inv_info["feature_importance"], "Feature Importance"), 255),
+                        use_container_width=True, config={"displayModeBar": False})
 
-    section("HIGH Risk SKUs — Immediate Reorder Needed", "⚠️")
-    high_df = (inv_df[inv_df["Predicted_Risk_Name"] == "HIGH"]
-               [["Stock Item", "Stock Category", "Subcategory", "Quantity On Hand",
-                 "Reorder Level", "Target Stock Level", "Stock Value",
-                 "Lead Time Days", "Availability"]]
-               .sort_values("Quantity On Hand"))
-    st.dataframe(high_df.style.format({
-        "Quantity On Hand":   "{:,.0f}",
-        "Reorder Level":      "{:,.0f}",
-        "Target Stock Level": "{:,.0f}",
-        "Stock Value":        "${:,.2f}",
-    }), use_container_width=True, height=300)
-
-    col3, col4 = st.columns(2)
-    with col3:
-        section("Model Feature Importance", "🔍")
-        st.plotly_chart(ch.feat_importance_chart(
-            inv_info["feature_importance"], "Stockout Classifier — Feature Importance"),
-            use_container_width=True)
-    with col4:
-        section("Classification Report", "📋")
+    # Row 3 — table + report (2-up)
+    rt1, rt2 = st.columns([3, 2])
+    with rt1:
+        st.caption("⚠️ HIGH Risk SKUs — Immediate Reorder Needed")
+        high_df = (inv_df[inv_df["Predicted_Risk_Name"] == "HIGH"]
+                   [["Stock Item","Stock Category","Quantity On Hand",
+                     "Reorder Level","Target Stock Level","Stock Value","Lead Time Days"]]
+                   .sort_values("Quantity On Hand"))
+        st.dataframe(high_df.style.format({
+            "Quantity On Hand":   "{:,.0f}",
+            "Reorder Level":      "{:,.0f}",
+            "Target Stock Level": "{:,.0f}",
+            "Stock Value":        "${:,.2f}",
+        }), use_container_width=True, height=185)
+    with rt2:
+        st.caption("📋 Classification Report")
         if inv_info["report"]:
             rpt = pd.DataFrame(inv_info["report"]).T.drop(columns=["support"], errors="ignore")
-            st.dataframe(rpt.style.format("{:.2f}"), use_container_width=True)
+            st.dataframe(rpt.style.format("{:.2f}"), use_container_width=True, height=185)
         if inv_info["auc"]:
             st.metric("ROC-AUC (OvR)", f"{inv_info['auc']:.3f}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 4 — CUSTOMER INTELLIGENCE
+# Tab Churn:       KPIs + 3-up charts (dist | feat imp | at-risk table)
+# Tab Segmentation: 2-up (3D scatter | segment summary)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "👥 Customer Intelligence":
     st.title("Customer Intelligence")
     st.caption("Churn Predictor · RFM Segmentation · KMeans Clustering")
 
-    tab1, tab2 = st.tabs(["🔮 Churn Prediction", "🗺️ RFM Segmentation"])
+    tab_ch, tab_seg = st.tabs(["🔮 Churn Prediction", "🗺️ RFM Segmentation"])
 
-    with tab1:
-        with st.spinner("Training churn prediction model…"):
+    with tab_ch:
+        with st.spinner("Training churn model…"):
             churn_info = _churn(sale)
 
-        rfm          = churn_info["rfm"]
-        churn_count  = rfm["Churn_Pred"].sum()
-        active_count = (rfm["Churn_Pred"] == 0).sum()
-        churn_rate   = rfm["Churn_Pred"].mean() * 100
+        rfm         = churn_info["rfm"]
+        churn_count = rfm["Churn_Pred"].sum()
+        active_cnt  = (rfm["Churn_Pred"] == 0).sum()
+        churn_rate  = rfm["Churn_Pred"].mean() * 100
 
         if churn_info["auc"]:
             q = "good" if churn_info["auc"] > 0.80 else "warn"
             st.session_state.model_metrics["Churn AUC"] = (f"{churn_info['auc']:.3f}", q)
 
+        # KPI row
         k1, k2, k3, k4 = st.columns(4)
-        with k1: metric_card("Total Customers",   f"{len(rfm):,}")
-        with k2: metric_card("At-Risk Customers", f"{churn_count:,}",
-                              delta_str=f"⚠ {churn_rate:.1f}% churn rate")
-        with k3: metric_card("Active Customers",  f"{active_count:,}")
+        with k1: metric_card("Total Customers",  f"{len(rfm):,}")
+        with k2: metric_card("At-Risk",          f"{churn_count:,}",
+                              delta_str=f"⚠ {churn_rate:.1f}% rate")
+        with k3: metric_card("Active",           f"{active_cnt:,}")
         with k4: metric_card("ROC-AUC",
                               f"{churn_info['auc']:.3f}" if churn_info["auc"] else "N/A")
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        # 3-up chart row
+        cc1, cc2, cc3 = st.columns(3)
+        with cc1:
+            st.plotly_chart(_c(ch.churn_dist(rfm), 248),
+                            use_container_width=True, config={"displayModeBar": False})
+        with cc2:
+            st.plotly_chart(_c(ch.feat_importance_chart(
+                    churn_info["feature_importance"], "Feature Importance"), 248),
+                            use_container_width=True, config={"displayModeBar": False})
+        with cc3:
+            at_risk = (rfm[rfm["Churn_Pred"] == 1]
+                       .sort_values("Churn_Prob", ascending=False).head(40)
+                       [["Customer Key","Recency","Frequency","Monetary","Churn_Prob"]]
+                       .rename(columns={"Monetary":"Revenue ($)",
+                                        "Churn_Prob":"Churn %"}))
+            at_risk["Churn %"]    = (at_risk["Churn %"] * 100).round(1)
+            at_risk["Revenue ($)"]= at_risk["Revenue ($)"].round(0)
+            st.caption("🚨 Top At-Risk Customers")
+            st.dataframe(at_risk.style.format({
+                "Revenue ($)": "${:,.0f}", "Churn %": "{:.1f}%",
+            }).background_gradient(subset=["Churn %"], cmap="RdYlGn_r"),
+                use_container_width=True, height=215)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            section("Churn Probability Distribution", "📊")
-            st.plotly_chart(ch.churn_dist(rfm), use_container_width=True)
-        with col2:
-            section("Feature Importance", "🔍")
-            st.plotly_chart(ch.feat_importance_chart(
-                churn_info["feature_importance"], "Churn Model — Feature Importance"),
-                use_container_width=True)
-
-        section("Top At-Risk Customers", "🚨")
-        at_risk = (rfm[rfm["Churn_Pred"] == 1]
-                   .sort_values("Churn_Prob", ascending=False)
-                   .head(50)
-                   [["Customer Key", "Recency", "Frequency", "Monetary",
-                     "Avg_Margin", "Churn_Prob"]]
-                   .rename(columns={"Monetary": "Total Revenue ($)",
-                                    "Churn_Prob": "Churn Probability"}))
-        at_risk["Churn Probability"] = (at_risk["Churn Probability"] * 100).round(1)
-        at_risk["Total Revenue ($)"] = at_risk["Total Revenue ($)"].round(0)
-        st.dataframe(at_risk.style.format({
-            "Total Revenue ($)": "${:,.0f}",
-            "Churn Probability": "{:.1f}%",
-            "Avg_Margin":        "{:.1f}%",
-        }).background_gradient(subset=["Churn Probability"], cmap="RdYlGn_r"),
-            use_container_width=True, height=300)
-
-    with tab2:
-        with st.spinner("Segmenting customers via KMeans…"):
+    with tab_seg:
+        with st.spinner("Segmenting customers…"):
             seg_info = _segments(sale)
 
         rfm_seg = seg_info["rfm"]
-        section("Customer RFM Segmentation (3D)", "🌐")
-        st.plotly_chart(ch.rfm_3d(rfm_seg), use_container_width=True)
-
-        section("Segment Summary", "📋")
         seg_sum = (rfm_seg.groupby("Segment Name")
-                   .agg(Count=("Customer Key", "count"),
-                        Avg_Recency=("Recency", "mean"),
-                        Avg_Frequency=("Frequency", "mean"),
-                        Avg_Monetary=("Monetary", "mean"))
+                   .agg(Count=("Customer Key","count"),
+                        Avg_Recency=("Recency","mean"),
+                        Avg_Frequency=("Frequency","mean"),
+                        Avg_Monetary=("Monetary","mean"))
                    .reset_index()
                    .sort_values("Avg_Monetary", ascending=False))
-        st.dataframe(seg_sum.style.format({
-            "Avg_Recency":   "{:.0f} days",
-            "Avg_Frequency": "{:.0f}",
-            "Avg_Monetary":  "${:,.0f}",
-        }), use_container_width=True)
+
+        sc1, sc2 = st.columns([3, 2])
+        with sc1:
+            st.plotly_chart(_c(ch.rfm_3d(rfm_seg), 310),
+                            use_container_width=True, config={"displayModeBar": False})
+        with sc2:
+            st.caption("📋 Segment Summary")
+            st.dataframe(seg_sum.style.format({
+                "Avg_Recency":   "{:.0f} days",
+                "Avg_Frequency": "{:.0f}",
+                "Avg_Monetary":  "${:,.0f}",
+            }), use_container_width=True, height=285)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 5 — SUPPLIER ANALYTICS
+# Tab Scoring:     KPIs + 2-up (scoreboard | feature importance)
+# Tab Fulfillment: 2-up (heatmap | full scorecard table)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🏭 Supplier Analytics":
     st.title("Supplier Analytics & Quality Scoring")
@@ -534,126 +572,128 @@ elif page == "🏭 Supplier Analytics":
     with st.spinner("Scoring suppliers…"):
         sup_info = _supplier(pur, dims["supplier"])
 
-    sup_df     = sup_info["df"]
-    avg_score  = sup_df["Quality_Score"].mean()
-    top_sup    = sup_df.loc[sup_df["Quality_Score"].idxmax(), "Supplier"]
-    low_fulf   = sup_df[sup_df["Avg_Fulfillment"] < 90]["Supplier"].count()
-    grade_a    = (sup_df["Grade"] == "A").sum()
+    sup_df    = sup_info["df"]
+    avg_score = sup_df["Quality_Score"].mean()
+    top_sup   = sup_df.loc[sup_df["Quality_Score"].idxmax(), "Supplier"]
+    low_fulf  = sup_df[sup_df["Avg_Fulfillment"] < 90]["Supplier"].count()
+    grade_a   = (sup_df["Grade"] == "A").sum()
 
     if sup_info.get("test_r2") is not None:
         q = "good" if sup_info["test_r2"] > 0.7 else "warn"
         st.session_state.model_metrics["Supplier R²"] = (f"{sup_info['test_r2']:.3f}", q)
 
+    # KPI row
     k1, k2, k3, k4 = st.columns(4)
-    with k1: metric_card("Avg Quality Score",         f"{avg_score:.0f}", suffix="/100")
-    with k2: metric_card("Grade A Suppliers",         f"{grade_a}")
-    with k3: metric_card("Low Fulfillment Suppliers", f"{low_fulf}")
-    with k4: metric_card("Top Supplier",              top_sup[:20] if top_sup else "N/A")
+    with k1: metric_card("Avg Quality Score",        f"{avg_score:.0f}", suffix="/100")
+    with k2: metric_card("Grade A Suppliers",        f"{grade_a}")
+    with k3: metric_card("Low Fulfillment (< 90 %)", f"{low_fulf}")
+    with k4: metric_card("Top Supplier",             (top_sup or "N/A")[:22])
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    tab_sc, tab_fu = st.tabs(["🏆 Quality Scoring", "🔥 Fulfillment"])
 
-    section("Supplier Quality Scoreboard", "🏆")
-    st.plotly_chart(ch.supplier_scoreboard(sup_df), use_container_width=True)
+    with tab_sc:
+        sa, sb = st.columns([3, 2])
+        with sa:
+            st.plotly_chart(_c(ch.supplier_scoreboard(sup_df), 285),
+                            use_container_width=True, config={"displayModeBar": False})
+        with sb:
+            st.plotly_chart(_c(ch.feat_importance_chart(
+                    sup_info["feature_importance"],
+                    "Supplier Quality — Feature Importance"), 285),
+                            use_container_width=True, config={"displayModeBar": False})
 
-    col1, col2 = st.columns(2)
-    with col1:
-        section("Fulfillment Rate Heatmap", "🔥")
-        st.plotly_chart(ch.fulfillment_heatmap(pur), use_container_width=True)
-    with col2:
-        section("Feature Importance", "🔍")
-        st.plotly_chart(ch.feat_importance_chart(
-            sup_info["feature_importance"], "Supplier Quality Model — Feature Importance"),
-            use_container_width=True)
-
-    section("Full Supplier Scorecard", "📋")
-    sc = sup_df[["Supplier", "Grade", "Quality_Score", "Avg_Fulfillment",
-                 "Std_Fulfillment", "Total_Orders", "Total_Value",
-                 "Supplier Rating", "Lead Time Days (Supplier)"]].sort_values(
-                     "Quality_Score", ascending=False)
-    st.dataframe(sc.style.format({
-        "Quality_Score":   "{:.1f}",
-        "Avg_Fulfillment": "{:.1f}%",
-        "Std_Fulfillment": "{:.1f}",
-        "Total_Value":     "${:,.0f}",
-        "Supplier Rating": "{:.1f}",
-    }).background_gradient(subset=["Quality_Score"], cmap="RdYlGn"),
-        use_container_width=True, height=400)
+    with tab_fu:
+        fa, fb = st.columns([3, 2])
+        with fa:
+            st.plotly_chart(_c(ch.fulfillment_heatmap(pur), 290),
+                            use_container_width=True, config={"displayModeBar": False})
+        with fb:
+            st.caption("📋 Full Supplier Scorecard")
+            sc_df = sup_df[["Supplier","Grade","Quality_Score","Avg_Fulfillment",
+                             "Total_Orders","Total_Value","Supplier Rating"]].sort_values(
+                                 "Quality_Score", ascending=False)
+            st.dataframe(sc_df.style.format({
+                "Quality_Score":   "{:.1f}",
+                "Avg_Fulfillment": "{:.1f}%",
+                "Total_Value":     "${:,.0f}",
+                "Supplier Rating": "{:.1f}",
+            }).background_gradient(subset=["Quality_Score"], cmap="RdYlGn"),
+                use_container_width=True, height=260)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 6 — ANOMALY DETECTION
+# Row 1: 4 KPIs
+# Row 2: Scatter | Score dist | Payment method  (3-up, 255 px)
+# Row 3: Anomalous transactions table           (full-width, 185 px)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🚨 Anomaly Detection":
     st.title("Financial Transaction Anomaly Detection")
-    st.caption("Isolation Forest · RobustScaler · Log-transformed Features · 5% Contamination")
+    st.caption("Isolation Forest · RobustScaler · Log-transformed Features · 5 % Contamination")
 
-    with st.spinner("Running Isolation Forest on transactions…"):
+    with st.spinner("Running Isolation Forest…"):
         anom_info = _anomaly(txn)
 
     anom_df = anom_info["df"]
-
-    rate_q = "good" if anom_info["anomaly_rate"] < 6 else "warn"
+    rate_q  = "good" if anom_info["anomaly_rate"] < 6 else "warn"
     st.session_state.model_metrics["Anomaly Rate"] = (
-        f"{anom_info['anomaly_rate']:.1f}%", rate_q
-    )
+        f"{anom_info['anomaly_rate']:.1f}%", rate_q)
 
+    # Row 1 — KPIs
     k1, k2, k3, k4 = st.columns(4)
     with k1: metric_card("Total Transactions",  f"{len(anom_df):,}")
     with k2: metric_card("Anomalies Detected",  f"{anom_info['anomaly_count']:,}",
                           delta_str=f"⚠ {anom_info['anomaly_rate']:.1f}% rate")
-    with k3: metric_card("Anomalous $ Exposure",
+    with k3: metric_card("$ Exposure",
                           f"${anom_df[anom_df['Is_Anomaly']]['Total Including Tax'].abs().sum()/1e3:.0f}K")
-    with k4: metric_card("Normal Transactions",  f"{(~anom_df['Is_Anomaly']).sum():,}")
+    with k4: metric_card("Normal Transactions", f"{(~anom_df['Is_Anomaly']).sum():,}")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    section("Anomaly Scatter: Transaction Amount vs Outstanding Balance", "🎯")
-    st.plotly_chart(ch.anomaly_chart(anom_df), use_container_width=True)
-
-    col1, col2 = st.columns(2)
-    with col1:
-        section("Anomaly Score Distribution", "📊")
+    # Row 2 — charts (3-up)
+    ac1, ac2, ac3 = st.columns([3, 3, 2])
+    with ac1:
+        st.plotly_chart(_c(ch.anomaly_chart(anom_df), 255),
+                        use_container_width=True, config={"displayModeBar": False})
+    with ac2:
         fig_score = go.Figure()
         fig_score.add_trace(go.Histogram(
             x=anom_df[~anom_df["Is_Anomaly"]]["Anomaly_Score"],
-            name="Normal", marker_color="#00D4FF", opacity=0.7, nbinsx=40))
+            name="Normal",  marker_color="#00D4FF", opacity=0.7, nbinsx=35))
         fig_score.add_trace(go.Histogram(
             x=anom_df[anom_df["Is_Anomaly"]]["Anomaly_Score"],
-            name="Anomaly", marker_color="#FF4C6E", opacity=0.8, nbinsx=40))
+            name="Anomaly", marker_color="#FF4C6E", opacity=0.8, nbinsx=35))
         fig_score.update_layout(
             template="plotly_dark", paper_bgcolor="#0E1117", plot_bgcolor="#0E1117",
             font_color="#E0E0E0", barmode="overlay",
-            title=dict(text="Isolation Forest Score Distribution",
-                       font=dict(color="#00D4FF")),
-            xaxis_title="Anomaly Score", yaxis_title="Count",
+            title=dict(text="Score Distribution", font=dict(color="#00D4FF", size=13)),
+            xaxis_title="Score", yaxis_title="Count",
             legend=dict(bgcolor="rgba(0,0,0,0)"))
-        st.plotly_chart(fig_score, use_container_width=True)
-
-    with col2:
-        section("Anomalies by Payment Method", "💳")
+        st.plotly_chart(_c(fig_score, 255),
+                        use_container_width=True, config={"displayModeBar": False})
+    with ac3:
         pm_anom = (anom_df[anom_df["Is_Anomaly"]]
-                   .groupby("Payment Method")["Is_Anomaly"]
-                   .count().reset_index()
-                   .rename(columns={"Is_Anomaly": "Anomalies"}))
-        fig_pm = px.bar(pm_anom, x="Payment Method", y="Anomalies",
+                   .groupby("Payment Method")["Is_Anomaly"].count()
+                   .reset_index().rename(columns={"Is_Anomaly":"Anomalies"}))
+        fig_pm = px.bar(pm_anom, x="Anomalies", y="Payment Method",
+                        orientation="h",
                         color="Anomalies", color_continuous_scale="Reds",
                         template="plotly_dark")
-        fig_pm.update_layout(paper_bgcolor="#0E1117", font_color="#E0E0E0",
-                              title=dict(text="Anomalies by Payment Method",
-                                         font=dict(color="#00D4FF")))
-        st.plotly_chart(fig_pm, use_container_width=True)
+        fig_pm.update_layout(
+            paper_bgcolor="#0E1117", font_color="#E0E0E0",
+            title=dict(text="By Payment Method", font=dict(color="#00D4FF", size=13)),
+            showlegend=False)
+        st.plotly_chart(_c(fig_pm, 255),
+                        use_container_width=True, config={"displayModeBar": False})
 
-    section("Top Anomalous Transactions", "⚠️")
+    # Row 3 — anomalous transactions table
+    st.caption("⚠️ Top Anomalous Transactions")
     top_anom = (anom_df[anom_df["Is_Anomaly"]]
-                .sort_values("Anomaly_Score")
-                .head(100)
-                [["Transaction Key", "Date Key", "Customer", "Payment Method",
-                  "Total Excluding Tax", "Tax Amount", "Total Including Tax",
-                  "Outstanding Balance", "Transaction Type", "Anomaly_Score"]])
+                .sort_values("Anomaly_Score").head(100)
+                [["Transaction Key","Date Key","Customer","Payment Method",
+                  "Total Including Tax","Outstanding Balance",
+                  "Transaction Type","Anomaly_Score"]])
     st.dataframe(top_anom.style.format({
-        "Total Excluding Tax": "${:,.2f}",
         "Total Including Tax": "${:,.2f}",
         "Outstanding Balance": "${:,.2f}",
         "Anomaly_Score":       "{:.4f}",
     }).background_gradient(subset=["Anomaly_Score"], cmap="Reds_r"),
-        use_container_width=True, height=350)
+        use_container_width=True, height=185)
