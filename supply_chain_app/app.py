@@ -523,7 +523,21 @@ elif page == "👥 Customer Intelligence":
         with st.spinner("Segmenting customers…"):
             seg_info = _segments(sale)
 
-        rfm_seg = seg_info["rfm"]
+        rfm_seg  = seg_info["rfm"]
+        sil_score = seg_info.get("silhouette", None)
+        best_k    = seg_info.get("best_k", 4)
+
+        if sil_score is not None:
+            q_sil = "good" if sil_score > 0.45 else "warn" if sil_score > 0.25 else ""
+            st.session_state.model_metrics["Seg Silhouette"] = (f"{sil_score:.3f}", q_sil)
+
+        # KPI strip
+        sk1, sk2, sk3 = st.columns(3)
+        with sk1: metric_card("Segments Found",   str(best_k))
+        with sk2: metric_card("Silhouette Score",
+                               f"{sil_score:.3f}" if sil_score is not None else "N/A")
+        with sk3: metric_card("Total Customers",  f"{rfm_seg['Customer Key'].nunique():,}")
+
         seg_sum = (rfm_seg.groupby("Segment Name")
                    .agg(Count=("Customer Key","count"),
                         Avg_Recency=("Recency","mean"),
