@@ -114,27 +114,17 @@ with st.spinner("Loading Supply Chain Data Warehouse…"):
 # CACHED MODEL WRAPPERS
 # ══════════════════════════════════════════════════════════════════════════════
 @st.cache_data(show_spinner=False)
-def _monthly_agg(sale):
-    """Pre-aggregate 228 K rows → ~800 rows; tiny hash for _forecast."""
-    needed = ["Calendar Year","Calendar Month Number","Stock Category",
-              "Quantity","Unit Price","Sale Key"]
+def _sale_for_forecast(sale):
+    """Slim down to columns ml_models needs; ml_models does its own aggregation."""
+    needed = ["Calendar Year", "Calendar Month Number", "Stock Category",
+              "Quantity", "Unit Price", "Sale Key"]
     cols = [c for c in needed if c in sale.columns]
-    return (
-        sale[cols]
-        .dropna(subset=["Calendar Year","Calendar Month Number","Quantity"])
-        .groupby(["Calendar Year","Calendar Month Number","Stock Category"])
-        .agg(Quantity=("Quantity","sum"),
-             Avg_Price=("Unit Price","mean"),
-             Num_Transactions=("Sale Key","count"))
-        .reset_index()
-        .sort_values(["Stock Category","Calendar Year","Calendar Month Number"])
-        .reset_index(drop=True)
-    )
+    return sale[cols].reset_index(drop=True)
 
 
 @st.cache_data(show_spinner=False, max_entries=12)
-def _forecast(monthly_agg, horizon):
-    return build_demand_forecast(monthly_agg, horizon_months=horizon)
+def _forecast(sale_slim, horizon):
+    return build_demand_forecast(sale_slim, horizon_months=horizon)
 
 
 @st.cache_data(show_spinner=False, max_entries=2,
@@ -331,7 +321,7 @@ elif page == "📈 Demand Forecasting":
         horizon = st.slider("Forecast horizon (months)", 1, 12, 3, key="fc_horizon")
 
     with st.spinner("Training demand forecast model…"):
-        info = _forecast(_monthly_agg(sale), horizon)
+        info = _forecast(_sale_for_forecast(sale), horizon)
 
     mape = info.get("mape", 0.0)
     r2   = info.get("r2",   0.0)
