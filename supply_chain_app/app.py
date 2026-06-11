@@ -123,7 +123,7 @@ def _monthly_agg(sale):
         sale[cols]
         .dropna(subset=["Calendar Year","Calendar Month Number","Quantity"])
         .groupby(["Calendar Year","Calendar Month Number","Stock Category"])
-        .agg(Total_Qty=("Quantity","sum"),
+        .agg(Quantity=("Quantity","sum"),
              Avg_Price=("Unit Price","mean"),
              Num_Transactions=("Sale Key","count"))
         .reset_index()
@@ -236,12 +236,7 @@ with st.sidebar:
         )
         st.markdown(f'<div class="sb-metrics">{rows_html}</div>', unsafe_allow_html=True)
 
-    st.markdown("""
-    <div class="sb-footer">
-        <div class="sb-footer-line">Galaxy Schema · FY 2013–2016</div>
-        <div class="sb-footer-line">6 ML Engines · 14 Tables · v2.1</div>
-    </div>
-    """, unsafe_allow_html=True)
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
