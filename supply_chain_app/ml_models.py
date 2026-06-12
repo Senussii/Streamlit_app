@@ -895,109 +895,292 @@ def build_churn_predictor(sale_df):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 4. SUPPLIER QUALITY SCORER
+# 4. SUPPLIER QUALITY SCORER  (v3 — volume-unbiased + trend-aware)
 # ══════════════════════════════════════════════════════════════════════════════
 def build_supplier_scorer(purchase_df, supplier_df):
     """
-    Scores each supplier 0-100 using a weighted composite + RF interpretation.
+    Scores every supplier 0-100 across five evidence-based pillars.
 
-    v2 additions
-    ────────────
-    • Proper hold-out test split with R² on unseen suppliers.
-    • Order_Consistency (1 − CV of fulfilment), Late_Delivery_Risk.
-    • Quality_Score now includes order consistency in weighted formula.
+    v3 — Why the old model broke, and what was fixed
+    ──────────────────────────────────────────────────
+    BROKEN (v2): Order_Consistency = 1 − (Std_Fulfillment / Avg_Fulfillment).
+    A supplier with 800 orders and 97 % fill will have a larger RAW Std than
+    a supplier with 30 orders and 79 % fill — purely by the law of large numbers.
+    The old formula turned "we buy from you constantly" into a *penalty*, which
+    is why high-volume reliable suppliers (e.g. Litware) ranked near the bottom.
+
+    FIX 1 — Unit-level fill rate (True_Fulfillment):
+      True_Fulfillment = Σ Received_Outers / Σ Ordered_Outers × 100
+    This is volume-weighted — each outer delivered counts equally, so a
+    supplier fulfilling 500-unit orders reliably isn't penalised for the
+    natural variance in small top-up orders.
+
+    FIX 2 — Standard Error replaces raw Std:
+      SE_Fulfillment = Std_Fulfillment / √n_orders
+    SE shrinks as n grows, so a supplier with 800 observed orders has a
+    TIGHTER confidence interval than one with 30 — correctly rewarding
+    the statistical certainty that comes with high volume.
+
+    FIX 3 — Bayesian shrinkage for low-volume suppliers:
+      Bayesian_Fill = (Σ Received + α × global_mean_fill)
+                    / (Σ Ordered  + α)
+    Low-volume suppliers are pulled toward the fleet average (α = 20 units)
+    rather than being given free rein to look artificially perfect on 10 orders.
+
+    FIX 4 — Volume as a POSITIVE signal:
+    Being chosen for 800 orders signals accumulated trust.  Log_Total_Orders
+    enters its own pillar — it is no longer an indirect penalty via inflated Std.
+
+    FIX 5 — Trend analysis (per quarter, OLS slope):
+    A supplier improving from 85 % → 95 % over 4 years scores higher than
+    one declining from 95 % → 85 %, even if their averages are identical.
+
+    FIX 6 — Recency delta:
+    Last-year fill rate vs lifetime average.  A supplier recovering from a
+    bad 2014 should not be penalised in 2016 scoring.
+
+    Scoring Pillars
+    ───────────────
+    Reliability   40 %  — True_Fulfillment, Bayesian_Fill, Perfect_Order_Rate
+    Consistency   25 %  — SE_Fulfillment (not raw Std), CV_Value
+    Trend         20 %  — Quarterly OLS slope, recent-vs-lifetime delta
+    Volume        10 %  — Log_Total_Orders, Category_Coverage
+    Attributes     5 %  — Supplier Rating, Lead Time (inverse), Speed tier
     """
+    from sklearn.linear_model import LinearRegression
+
     pur = purchase_df.copy()
+    pur = pur.dropna(subset=["Ordered Outers", "Received Outers"])
+    pur = pur[pur["Ordered Outers"] > 0]
 
-    sup_agg = (
-        pur.groupby("Supplier Key")
-        .agg(
-            Avg_Fulfillment  = ("Fulfillment Rate",    "mean"),
-            Std_Fulfillment  = ("Fulfillment Rate",    "std"),
-            Min_Fulfillment  = ("Fulfillment Rate",    "min"),
-            Total_Orders     = ("Purchase Key",        "count"),
-            Total_Value      = ("Purchase Value",      "sum"),
-            Avg_Value        = ("Purchase Value",      "mean"),
-            Finalized_Rate   = ("Is Order Finalized",  "mean"),
-        )
-        .reset_index()
-    )
-    sup_agg["Std_Fulfillment"] = sup_agg["Std_Fulfillment"].fillna(0)
-    sup_agg["Min_Fulfillment"] = sup_agg["Min_Fulfillment"].fillna(0)
+    # ── 1. per-order unit-fill (correct base metric) ──────────────────────────
+    pur["Unit_Fill"] = (pur["Received Outers"] / pur["Ordered Outers"] * 100).clip(0, 110)
 
-    # consistency: low CV of fulfilment = reliable supplier
-    sup_agg["Order_Consistency"] = (
-        1.0 - (sup_agg["Std_Fulfillment"] / sup_agg["Avg_Fulfillment"].replace(0, np.nan))
-    ).clip(0, 1).fillna(0)
+    # ── 2. derive time index for trend ───────────────────────────────────────
+    pur["Year"]  = pd.to_datetime(pur["Date Key"], errors="coerce").dt.year
+    pur["Month"] = pd.to_datetime(pur["Date Key"], errors="coerce").dt.month
+    pur["Quarter_Idx"] = (pur["Year"] - pur["Year"].min()) * 4 + ((pur["Month"] - 1) // 3)
 
+    snapshot_year = int(pur["Year"].max())
+
+    # ── 3. global prior for Bayesian shrinkage ────────────────────────────────
+    global_sum_received = pur["Received Outers"].sum()
+    global_sum_ordered  = pur["Ordered Outers"].sum()
+    global_fill         = global_sum_received / global_sum_ordered * 100   # fleet average
+    BAYES_ALPHA         = 20.0     # equivalent prior sample in "outers"
+
+    # ── 4. per-supplier aggregation ───────────────────────────────────────────
+    def _supplier_features(grp):
+        n       = len(grp)
+        s_recv  = grp["Received Outers"].sum()
+        s_ord   = grp["Ordered Outers"].sum()
+        fills   = grp["Unit_Fill"]
+
+        true_fill  = s_recv / s_ord * 100
+        bayes_fill = ((s_recv + BAYES_ALPHA * global_fill / 100 * s_ord / max(s_ord, 1))
+                      / (s_ord  + BAYES_ALPHA) * 100) if s_ord > 0 else global_fill
+        # simpler & numerically stable Bayesian form:
+        bayes_fill = (s_recv + BAYES_ALPHA * (global_fill / 100)) / (s_ord + BAYES_ALPHA) * 100
+
+        std_fill   = fills.std() if n >= 2 else 0.0
+        se_fill    = std_fill / np.sqrt(n)                      # ← key fix
+        min_fill   = fills.min()
+        perfect    = (fills >= 100.0).mean() * 100
+        shortfall  = (grp["Received Outers"] < grp["Ordered Outers"]).mean() * 100
+
+        # value consistency
+        vals       = grp["Purchase Value"].dropna()
+        cv_val     = (vals.std() / vals.mean()) if (len(vals) >= 2 and vals.mean() > 0) else 1.0
+
+        # quarterly OLS trend
+        q_agg = (grp.groupby("Quarter_Idx")["Unit_Fill"].mean()
+                   .reset_index().rename(columns={"Unit_Fill": "Fill"}))
+        trend_slope = 0.0
+        if len(q_agg) >= 3:
+            try:
+                lr = LinearRegression()
+                lr.fit(q_agg[["Quarter_Idx"]], q_agg["Fill"])
+                trend_slope = float(lr.coef_[0])   # % per quarter
+            except Exception:
+                trend_slope = 0.0
+
+        # recent vs lifetime
+        recent = grp[grp["Year"] == snapshot_year]["Unit_Fill"].mean()
+        lifetime_excl_recent = grp[grp["Year"] < snapshot_year]["Unit_Fill"].mean()
+        if pd.notna(recent) and pd.notna(lifetime_excl_recent) and lifetime_excl_recent > 0:
+            recent_delta = recent - lifetime_excl_recent
+        else:
+            recent_delta = 0.0
+
+        # category breadth
+        cat_cov = grp["Stock Category"].nunique() if "Stock Category" in grp.columns else 1
+
+        return pd.Series({
+            "True_Fulfillment":    true_fill,
+            "Bayesian_Fill":       bayes_fill,
+            "SE_Fulfillment":      se_fill,
+            "Min_Fulfillment":     min_fill,
+            "Perfect_Order_Rate":  perfect,
+            "Shortfall_Rate":      shortfall,
+            "CV_Value":            cv_val,
+            "Trend_Slope":         trend_slope,
+            "Recent_Delta":        recent_delta,
+            "Total_Orders":        n,
+            "Total_Value":         grp["Purchase Value"].sum(),
+            "Category_Coverage":   cat_cov,
+            "Finalized_Rate":      grp["Is Order Finalized"].mean()
+                                   if "Is Order Finalized" in grp.columns else 1.0,
+        })
+
+    sup_agg = (pur.groupby("Supplier Key")
+                  .apply(_supplier_features)
+                  .reset_index())
+
+    # ── 5. attach supplier dimension attributes ────────────────────────────────
     sdim = supplier_df.copy()
-    sdim["Tier_Code"]  = _le(sdim["Supplier Tier"])
-    sdim["Speed_Code"] = _le(sdim["Delivery Speed Category"])
+    sdim["Tier_Code"]  = _le(sdim.get("Supplier Tier",  pd.Series(["Unknown"]*len(sdim))))
+    sdim["Speed_Code"] = _le(sdim.get("Delivery Speed Category", pd.Series(["Unknown"]*len(sdim))))
 
     merged = sup_agg.merge(
         sdim[["Supplier Key", "Supplier", "Supplier Rating",
               "Lead Time Days (Supplier)", "Tier_Code", "Speed_Code", "Region"]],
         on="Supplier Key", how="left",
     )
+    merged["Supplier Rating"]           = merged["Supplier Rating"].fillna(merged["Supplier Rating"].median())
+    merged["Lead Time Days (Supplier)"] = merged["Lead Time Days (Supplier)"].fillna(
+                                            merged["Lead Time Days (Supplier)"].median())
 
-    score_feats   = ["Avg_Fulfillment", "Min_Fulfillment", "Finalized_Rate",
-                     "Order_Consistency", "Supplier Rating", "Avg_Value"]
-    penalty_feats = ["Std_Fulfillment", "Lead Time Days (Supplier)"]
-    merged = merged.dropna(subset=score_feats + penalty_feats)
+    # ── 6. normalise each metric to 0-1 across fleet ─────────────────────────
+    def _n01(s):
+        mn, mx = s.min(), s.max()
+        return (s - mn) / (mx - mn + 1e-9)
 
-    pos_scaled = MinMaxScaler(feature_range=(0, 100)).fit_transform(merged[score_feats])
-    neg_scaled = MinMaxScaler(feature_range=(0, 100)).fit_transform(merged[penalty_feats])
+    def _n01_inv(s):     # higher raw value = WORSE (e.g. lead time, SE, CV)
+        return 1.0 - _n01(s)
 
-    # weights: fulfilment consistency & reliability rank highest
-    weights = np.array([0.30, 0.12, 0.18, 0.15, 0.13, 0.12])
+    def _n01_mid(s):     # centred on 0; positive slope = good, negative = bad
+        # map to 0-1 where 0.5 = no change, 1 = strongly improving
+        return (_n01(s) * 0.8 + 0.1).clip(0, 1)  # compress to 0.1-0.9 so neutral suppliers aren't extremes
+
+    # ── 7. five-pillar composite ──────────────────────────────────────────────
+    #  Reliability  40% — did they deliver the units?
+    pillar_reliability = (
+        0.50 * _n01(merged["Bayesian_Fill"])       # Bayesian-adjusted fill (shrinks low-n)
+      + 0.30 * _n01(merged["Perfect_Order_Rate"])  # % orders 100%+ fulfilled
+      + 0.20 * _n01_inv(merged["Shortfall_Rate"])  # fewer shortfalls = better
+    ) * 100
+
+    #  Consistency  25% — how predictable are they?
+    pillar_consistency = (
+        0.70 * _n01_inv(merged["SE_Fulfillment"])  # SE (not raw Std) — doesn't punish volume
+      + 0.30 * _n01_inv(merged["CV_Value"])         # stable order values
+    ) * 100
+
+    #  Trend  20% — are they getting better or worse?
+    pillar_trend = (
+        0.60 * _n01_mid(merged["Trend_Slope"])      # quarterly OLS slope
+      + 0.40 * _n01_mid(merged["Recent_Delta"])     # last year vs lifetime
+    ) * 100
+
+    #  Volume & Partnership  10% — how much do we rely on them?
+    pillar_volume = (
+        0.70 * _n01(np.log1p(merged["Total_Orders"]))
+      + 0.30 * _n01(merged["Category_Coverage"])
+    ) * 100
+
+    #  Supplier Attributes  5% — inherent profile quality
+    pillar_attributes = (
+        0.50 * _n01(merged["Supplier Rating"])
+      + 0.30 * _n01_inv(merged["Lead Time Days (Supplier)"])
+      + 0.20 * _n01(merged["Speed_Code"].astype(float))
+    ) * 100
+
     merged["Quality_Score"] = (
-        (pos_scaled * weights).sum(axis=1) * 0.75
-        - neg_scaled.mean(axis=1) * 0.25
+        0.40 * pillar_reliability
+      + 0.25 * pillar_consistency
+      + 0.20 * pillar_trend
+      + 0.10 * pillar_volume
+      + 0.05 * pillar_attributes
     ).clip(0, 100)
 
+    # pillar breakdown (useful for diagnostics / tooltip)
+    merged["P_Reliability"]  = pillar_reliability.clip(0, 100).round(1)
+    merged["P_Consistency"]  = pillar_consistency.clip(0, 100).round(1)
+    merged["P_Trend"]        = pillar_trend.clip(0, 100).round(1)
+    merged["P_Volume"]       = pillar_volume.clip(0, 100).round(1)
+    merged["P_Attributes"]   = pillar_attributes.clip(0, 100).round(1)
+
+    # trend direction label
+    def _trend_label(slope):
+        if slope >  0.3: return "↑ Improving"
+        if slope < -0.3: return "↓ Declining"
+        return "→ Stable"
+    merged["Trend_Direction"] = merged["Trend_Slope"].apply(_trend_label)
+
+    # ── 8. ML model: HistGB + RF blend → unbiased R² ─────────────────────────
     features = [
-        "Avg_Fulfillment",       "Std_Fulfillment",   "Min_Fulfillment",
-        "Total_Orders",          "Finalized_Rate",    "Order_Consistency",
-        "Tier_Code",             "Speed_Code",
-        "Lead Time Days (Supplier)", "Supplier Rating",
+        "True_Fulfillment",  "Bayesian_Fill",     "SE_Fulfillment",
+        "Min_Fulfillment",   "Perfect_Order_Rate", "Shortfall_Rate",
+        "CV_Value",          "Trend_Slope",        "Recent_Delta",
+        "Total_Orders",      "Category_Coverage",  "Finalized_Rate",
+        "Tier_Code",         "Speed_Code",
+        "Supplier Rating",   "Lead Time Days (Supplier)",
     ]
-    X = merged[features]
-    y = merged["Quality_Score"]
+    model_df = merged.dropna(subset=features)
+    X = model_df[features]
+    y = model_df["Quality_Score"]
 
-    # ── hold-out test for unbiased R² (v2 fix) ───────────────────────────────
-    if len(merged) >= 10:
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
+    test_r2 = None
+    if len(model_df) >= 10:
+        X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        hgb = HistGradientBoostingRegressor(
+            max_iter=300, learning_rate=0.05, max_leaf_nodes=31,
+            min_samples_leaf=2, l2_regularization=0.1, random_state=42,
         )
-        model = RandomForestRegressor(
+        hgb.fit(X_tr, y_tr)
+
+        rf = RandomForestRegressor(
             n_estimators=300, max_depth=6, min_samples_leaf=2,
             random_state=42, n_jobs=-1,
         )
-        model.fit(X_train, y_train)
-        test_r2 = r2_score(y_test, model.predict(X_test))
-        # re-fit on full data for scoring all suppliers
-        model.fit(X, y)
+        rf.fit(X_tr, y_tr)
+
+        p_hgb = hgb.predict(X_te)
+        p_rf  = rf.predict(X_te)
+        r2_hgb = r2_score(y_te, p_hgb)
+        r2_rf  = r2_score(y_te, p_rf)
+
+        w_hgb = max(r2_hgb, 0.0);  w_rf = max(r2_rf, 0.0)
+        total_w = w_hgb + w_rf + 1e-9
+        p_blend = (w_hgb * p_hgb + w_rf * p_rf) / total_w
+        test_r2 = float(r2_score(y_te, p_blend))
+
+        # re-fit on full data
+        hgb.fit(X, y);  rf.fit(X, y)
+        model = rf     # RF for feature importance display
     else:
-        model = RandomForestRegressor(
+        rf = RandomForestRegressor(
             n_estimators=300, max_depth=6, min_samples_leaf=2,
             random_state=42, n_jobs=-1,
         )
-        model.fit(X, y)
-        test_r2 = None
+        rf.fit(X, y) if len(model_df) >= 2 else None
+        model = rf
 
-    merged["Predicted_Score"] = model.predict(X).clip(0, 100)
+    merged["Predicted_Score"] = model.predict(model_df[features]).clip(0, 100)
 
+    # ── 9. grade ──────────────────────────────────────────────────────────────
     def _grade(s):
         if s >= 80: return "A"
         if s >= 65: return "B"
         if s >= 50: return "C"
         return "D"
-
     merged["Grade"] = merged["Quality_Score"].apply(_grade)
 
     return {
-        "model": model, "df": merged,
-        "test_r2": test_r2,
+        "model":              model,
+        "df":                 merged,
+        "test_r2":            test_r2,
         "feature_importance": _feat_imp(model, features),
     }
 

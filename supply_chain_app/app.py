@@ -566,7 +566,7 @@ elif page == "👥 Customer Intelligence":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🏭 Supplier Analytics":
     st.title("Supplier Analytics & Quality Scoring")
-    st.caption("Random Forest · Hold-out R² · Fulfillment Heatmap · Benchmarking")
+    st.caption("Volume-unbiased scoring · 5-pillar composite · Trend-aware · HistGB + RF blend")
 
     with st.spinner("Scoring suppliers…"):
         sup_info = _supplier(pur, dims["supplier"])
@@ -574,21 +574,25 @@ elif page == "🏭 Supplier Analytics":
     sup_df    = sup_info["df"]
     avg_score = sup_df["Quality_Score"].mean()
     top_sup   = sup_df.loc[sup_df["Quality_Score"].idxmax(), "Supplier"]
-    low_fulf  = sup_df[sup_df["Avg_Fulfillment"] < 90]["Supplier"].count()
+    # v3: use True_Fulfillment (unit-weighted) for low-fulfillment count
+    fill_col  = "True_Fulfillment" if "True_Fulfillment" in sup_df.columns else "Avg_Fulfillment"
+    low_fulf  = (sup_df[fill_col] < 90).sum()
     grade_a   = (sup_df["Grade"] == "A").sum()
+    improving = (sup_df.get("Trend_Direction", pd.Series([])) == "↑ Improving").sum()
 
     if sup_info.get("test_r2") is not None:
         q = "good" if sup_info["test_r2"] > 0.7 else "warn"
         st.session_state.model_metrics["Supplier R²"] = (f"{sup_info['test_r2']:.3f}", q)
 
     # KPI row
-    k1, k2, k3, k4 = st.columns(4)
+    k1, k2, k3, k4, k5 = st.columns(5)
     with k1: metric_card("Avg Quality Score",        f"{avg_score:.0f}", suffix="/100")
     with k2: metric_card("Grade A Suppliers",        f"{grade_a}")
-    with k3: metric_card("Low Fulfillment (< 90 %)", f"{low_fulf}")
-    with k4: metric_card("Top Supplier",             (top_sup or "N/A")[:22])
+    with k3: metric_card("Low Fill-Rate (< 90 %)",   f"{low_fulf}")
+    with k4: metric_card("↑ Improving Trend",        f"{improving}")
+    with k5: metric_card("Top Supplier",             (top_sup or "N/A")[:20])
 
-    tab_sc, tab_fu = st.tabs(["🏆 Quality Scoring", "🔥 Fulfillment"])
+    tab_sc, tab_fu, tab_pillar = st.tabs(["🏆 Quality Scoring", "🔥 Fulfillment", "📊 Pillar Breakdown"])
 
     with tab_sc:
         sa, sb = st.columns([3, 2])
@@ -607,17 +611,32 @@ elif page == "🏭 Supplier Analytics":
             st.plotly_chart(_c(ch.fulfillment_heatmap(pur), 290),
                             use_container_width=True, config={"displayModeBar": False})
         with fb:
-            st.caption("📋 Full Supplier Scorecard")
-            sc_df = sup_df[["Supplier","Grade","Quality_Score","Avg_Fulfillment",
-                             "Total_Orders","Total_Value","Supplier Rating"]].sort_values(
-                                 "Quality_Score", ascending=False)
-            st.dataframe(sc_df.style.format({
-                "Quality_Score":   "{:.1f}",
-                "Avg_Fulfillment": "{:.1f}%",
-                "Total_Value":     "${:,.0f}",
-                "Supplier Rating": "{:.1f}",
-            }).background_gradient(subset=["Quality_Score"], cmap="RdYlGn"),
-                use_container_width=True, height=260)
+            st.caption("📋 Full Supplier Scorecard  *(True Fill = unit-weighted Σreceived/Σordered)*")
+            show_cols = ["Supplier", "Grade", "Quality_Score"]
+            show_cols += [c for c in ["True_Fulfillment","Trend_Direction","Total_Orders",
+                                       "Total_Value","Supplier Rating"] if c in sup_df.columns]
+            sc_df = sup_df[show_cols].sort_values("Quality_Score", ascending=False)
+            fmt = {"Quality_Score": "{:.1f}", "Total_Value": "${:,.0f}",
+                   "Supplier Rating": "{:.1f}"}
+            if "True_Fulfillment" in sc_df.columns:
+                fmt["True_Fulfillment"] = "{:.1f}%"
+            st.dataframe(sc_df.style.format(fmt)
+                         .background_gradient(subset=["Quality_Score"], cmap="RdYlGn"),
+                         use_container_width=True, height=270)
+
+    with tab_pillar:
+        st.caption("📐 Pillar scores show where each supplier excels or lags (each 0-100)")
+        pillar_cols = [c for c in ["Supplier","Grade","P_Reliability","P_Consistency",
+                                    "P_Trend","P_Volume","P_Attributes","Quality_Score"]
+                       if c in sup_df.columns]
+        if len(pillar_cols) > 2:
+            p_df = sup_df[pillar_cols].sort_values("Quality_Score", ascending=False)
+            gradient_cols = [c for c in p_df.columns if c.startswith("P_") or c == "Quality_Score"]
+            st.dataframe(p_df.style.format({c: "{:.1f}" for c in gradient_cols})
+                         .background_gradient(subset=gradient_cols, cmap="RdYlGn", vmin=0, vmax=100),
+                         use_container_width=True, height=350)
+        else:
+            st.info("Pillar scores not available — re-run scoring.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
