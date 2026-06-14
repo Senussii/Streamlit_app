@@ -1051,9 +1051,14 @@ def build_supplier_scorer(purchase_df, supplier_df):
         perfect    = (fills >= 100.0).mean() * 100
         shortfall  = (grp["Received Outers"] < grp["Ordered Outers"]).mean() * 100
 
-        # value consistency
-        vals       = grp["Purchase Value"].dropna()
-        cv_val     = (vals.std() / vals.mean()) if (len(vals) >= 2 and vals.mean() > 0) else 1.0
+        # ── consistency metrics ───────────────────────────────────────────────
+        # CV_Value (std of order dollar amounts) is intentionally removed.
+        # High-volume, multi-category suppliers (Litware, Fabrikam) naturally
+        # have wide dollar variance because they ship everything from screws to
+        # server racks — that diversity is GOOD, not inconsistent.
+        # CV_Fill_Rate measures how variable the per-order FILL RATE is, which
+        # is the true consistency signal.
+        cv_fill_rate = (fills.std() / fills.mean()) if (n >= 2 and fills.mean() > 0) else 1.0
 
         # quarterly OLS trend
         q_agg = (grp.groupby("Quarter_Idx")["Unit_Fill"].mean()
@@ -1085,7 +1090,7 @@ def build_supplier_scorer(purchase_df, supplier_df):
             "Min_Fulfillment":     min_fill,
             "Perfect_Order_Rate":  perfect,
             "Shortfall_Rate":      shortfall,
-            "CV_Value":            cv_val,
+            "CV_Fill_Rate":        cv_fill_rate,   # replaces CV_Value
             "Trend_Slope":         trend_slope,
             "Recent_Delta":        recent_delta,
             "Total_Orders":        n,
@@ -1173,7 +1178,45 @@ def build_supplier_scorer(purchase_df, supplier_df):
         ))), index=s.index)
         return score.clip(0, 100)
 
-    def _n01(s):       # relative 0-1 (still used for volume / attributes)
+    def _score_se(s):
+        """
+        Absolute SE_Fulfillment → score (0-100, inverted — lower SE is better).
+        SE < 0.5 %  → 92-100  (very tight confidence interval)
+        SE 0.5-2 %  → 72-92
+        SE 2-5 %    → 40-72
+        SE > 5 %    → 0-40
+        High-volume suppliers naturally achieve low SE by the law of large numbers.
+        """
+        s = pd.to_numeric(s, errors="coerce").fillna(10.0)
+        score = pd.Series(np.where(
+            s <= 0.5, 92 + (0.5 - s) * 16,
+        np.where(
+            s <= 2,   72 + (2 - s) * (20 / 1.5),
+        np.where(
+            s <= 5,   40 + (5 - s) * (32 / 3),
+            np.maximum(0, 40 - (s - 5) * 4)
+        ))), index=s.index)
+        return score.clip(0, 100)
+
+    def _score_cv_fill(s):
+        """
+        Absolute CV_Fill_Rate → score (0-100, inverted — lower CV is better).
+        CV < 0.05  → 90-100  (fill rates almost never deviate order to order)
+        CV 0.05-0.15 → 65-90
+        CV 0.15-0.30 → 35-65
+        CV > 0.30  → 0-35
+        Litware/Fabrikam delivering 98 % on every order (low CV) scores well.
+        """
+        s = pd.to_numeric(s, errors="coerce").fillna(0.5)
+        score = pd.Series(np.where(
+            s <= 0.05, 90 + (0.05 - s) * 200,
+        np.where(
+            s <= 0.15, 65 + (0.15 - s) * 250,
+        np.where(
+            s <= 0.30, 35 + (0.30 - s) * 200,
+            np.maximum(0, 35 - (s - 0.30) * 50)
+        ))), index=s.index)
+        return score.clip(0, 100)
         mn, mx = s.min(), s.max()
         return (s - mn) / (mx - mn + 1e-9)
 
@@ -1195,11 +1238,13 @@ def build_supplier_scorer(purchase_df, supplier_df):
       + 0.15 * _score_shortfall(merged["Shortfall_Rate"])
     )
 
-    # Consistency 20 % — SE shrinks with n, so high-volume suppliers are
-    # correctly rewarded for the statistical certainty they provide.
+    # Consistency 20 % — absolute benchmarks so long-term multi-category
+    # suppliers (Litware, Fabrikam) are scored on HOW CONSISTENT THEIR FILL
+    # RATES ARE per order, not how varied their order dollar amounts are.
+    # SE shrinks with √n, correctly rewarding high-volume suppliers.
     pillar_consistency = (
-        0.70 * _n01_inv(merged["SE_Fulfillment"]) * 100
-      + 0.30 * _n01_inv(merged["CV_Value"]) * 100
+        0.70 * _score_se(merged["SE_Fulfillment"])
+      + 0.30 * _score_cv_fill(merged["CV_Fill_Rate"])
     )
 
     # Trend 15 % — is the supplier getting better or worse?
@@ -1249,7 +1294,7 @@ def build_supplier_scorer(purchase_df, supplier_df):
     features = [
         "True_Fulfillment",  "Bayesian_Fill",     "SE_Fulfillment",
         "Min_Fulfillment",   "Perfect_Order_Rate", "Shortfall_Rate",
-        "CV_Value",          "Trend_Slope",        "Recent_Delta",
+        "CV_Fill_Rate",      "Trend_Slope",        "Recent_Delta",
         "Total_Orders",      "Category_Coverage",  "Finalized_Rate",
         "Tier_Code",         "Speed_Code",
         "Supplier Rating",   "Lead Time Days (Supplier)",

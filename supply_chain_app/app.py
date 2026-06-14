@@ -354,34 +354,25 @@ elif page == "📈 Demand Forecasting":
             _c(ch.forecast_chart(info, selected), 260),
             use_container_width=True, config={"displayModeBar": False})
 
-    # Row 3 — Feature Importance + Actual vs Predicted (side by side)
-    d1, d3 = st.columns(2)
-
-    with d1:
-        st.plotly_chart(
-            _c(ch.feat_importance_chart(info["feature_importance"],
-               "Feature Importance"), 230),
-            use_container_width=True, config={"displayModeBar": False})
-
-    with d3:
-        fig_ap = go.Figure()
-        fig_ap.add_trace(go.Scatter(
-            x=info["test_true"], y=info["test_pred"], mode="markers",
-            marker=dict(color="#00D4FF", opacity=0.45, size=4), name="Predictions"))
-        mn = float(min(info["test_true"].min(), info["test_pred"].min()))
-        mx = float(max(info["test_true"].max(), info["test_pred"].max()))
-        fig_ap.add_trace(go.Scatter(
-            x=[mn, mx], y=[mn, mx], mode="lines",
-            line=dict(color="#FF6B35", dash="dot", width=1.5), name="Perfect"))
-        fig_ap.update_layout(
-            template="plotly_dark", paper_bgcolor="#0E1117", plot_bgcolor="#0E1117",
-            font_color="#E0E0E0",
-            xaxis_title="Actual", yaxis_title="Predicted",
-            title=dict(text=f"Actual vs Predicted  R²={r2:.3f}",
-                       font=dict(color="#00D4FF", size=13)),
-            legend=dict(bgcolor="rgba(0,0,0,0)"))
-        st.plotly_chart(_c(fig_ap, 230),
-                        use_container_width=True, config={"displayModeBar": False})
+    # Row 3 — Actual vs Predicted full-width (feature importance removed — not for end users)
+    fig_ap = go.Figure()
+    fig_ap.add_trace(go.Scatter(
+        x=info["test_true"], y=info["test_pred"], mode="markers",
+        marker=dict(color="#00D4FF", opacity=0.45, size=4), name="Predictions"))
+    mn = float(min(info["test_true"].min(), info["test_pred"].min()))
+    mx = float(max(info["test_true"].max(), info["test_pred"].max()))
+    fig_ap.add_trace(go.Scatter(
+        x=[mn, mx], y=[mn, mx], mode="lines",
+        line=dict(color="#FF6B35", dash="dot", width=1.5), name="Perfect fit"))
+    fig_ap.update_layout(
+        template="plotly_dark", paper_bgcolor="#0E1117", plot_bgcolor="#0E1117",
+        font_color="#E0E0E0",
+        xaxis_title="Actual Units", yaxis_title="Predicted Units",
+        title=dict(text=f"Actual vs Predicted  —  R²={r2:.3f}",
+                   font=dict(color="#00D4FF", size=13)),
+        legend=dict(bgcolor="rgba(0,0,0,0)"))
+    st.plotly_chart(_c(fig_ap, 240),
+                    use_container_width=True, config={"displayModeBar": False})
 
     # Row 4 — Forecast table FULL WIDTH so every column is visible without scrolling
     st.caption("📋 Forecast Table")
@@ -444,12 +435,12 @@ elif page == "📦 Inventory Risk":
     with k3: metric_card("MEDIUM Risk SKUs", f"{medium}")
     with k4: metric_card("Stock Value",      f"${stock_val/1e6:.1f}M")
 
-    # Row 2 — charts (3-up)
-    rc1, rc2, rc3 = st.columns([4, 2, 3])
+    # Row 2 — Risk scatter (wider) + pie side by side
+    rc1, rc2 = st.columns([3, 1])
     with rc1:
         if "Monthly_Velocity" not in inv_df.columns:
             inv_df["Monthly_Velocity"] = 0
-        st.plotly_chart(_c(ch.inventory_risk_scatter(inv_df), 255),
+        st.plotly_chart(_c(ch.inventory_risk_scatter(inv_df), 270),
                         use_container_width=True, config={"displayModeBar": False})
     with rc2:
         risk_cnt = inv_df["Predicted_Risk_Name"].value_counts().reset_index()
@@ -462,32 +453,29 @@ elif page == "📦 Inventory Risk":
             paper_bgcolor="#0E1117", font_color="#E0E0E0",
             legend=dict(bgcolor="rgba(0,0,0,0)"),
             title=dict(text="Risk Distribution", font=dict(color="#00D4FF", size=13)))
-        st.plotly_chart(_c(fig_pie, 255),
-                        use_container_width=True, config={"displayModeBar": False})
-    with rc3:
-        st.plotly_chart(_c(ch.feat_importance_chart(
-                inv_info["feature_importance"], "Feature Importance"), 255),
+        st.plotly_chart(_c(fig_pie, 270),
                         use_container_width=True, config={"displayModeBar": False})
 
-    # Row 3 — table + report (2-up)
-    rt1, rt2 = st.columns([3, 2])
-    with rt1:
-        st.caption("⚠️ HIGH Risk SKUs — Immediate Reorder Needed")
-        high_df = (inv_df[inv_df["Predicted_Risk_Name"] == "HIGH"]
-                   [["Stock Item","Stock Category","Quantity On Hand",
-                     "Reorder Level","Target Stock Level","Stock Value","Lead Time Days"]]
-                   .sort_values("Quantity On Hand"))
-        st.dataframe(high_df.style.format({
-            "Quantity On Hand":   "{:,.0f}",
-            "Reorder Level":      "{:,.0f}",
-            "Target Stock Level": "{:,.0f}",
-            "Stock Value":        "${:,.2f}",
-        }), use_container_width=True, height=185)
-    with rt2:
-        st.caption("📋 Classification Report")
-        if inv_info["report"]:
+    # Row 3 — HIGH Risk table full-width + Classification Report below
+    st.caption("⚠️ HIGH Risk SKUs — Immediate Reorder Needed")
+    high_df = (inv_df[inv_df["Predicted_Risk_Name"] == "HIGH"]
+               [["Stock Item","Stock Category","Quantity On Hand",
+                 "Reorder Level","Target Stock Level","Monthly_Velocity",
+                 "Days_Coverage","Stock Value","Lead Time Days"]]
+               .sort_values("Quantity On Hand"))
+    st.dataframe(high_df.style.format({
+        "Quantity On Hand":   "{:,.0f}",
+        "Reorder Level":      "{:,.0f}",
+        "Target Stock Level": "{:,.0f}",
+        "Monthly_Velocity":   "{:,.1f}",
+        "Days_Coverage":      "{:,.0f}",
+        "Stock Value":        "${:,.2f}",
+    }), use_container_width=True, height=210, hide_index=True)
+
+    if inv_info["report"]:
+        with st.expander("📋 Classification Report", expanded=False):
             rpt = pd.DataFrame(inv_info["report"]).T.drop(columns=["support"], errors="ignore")
-            st.dataframe(rpt.style.format("{:.2f}"), use_container_width=True, height=185)
+            st.dataframe(rpt.style.format("{:.2f}"), use_container_width=True)
         if inv_info["auc"]:
             st.metric("ROC-AUC (OvR)", f"{inv_info['auc']:.3f}")
 
@@ -525,16 +513,12 @@ elif page == "👥 Customer Intelligence":
         with k4: metric_card("ROC-AUC",
                               f"{churn_info['auc']:.3f}" if churn_info["auc"] else "N/A")
 
-        # 3-up chart row
-        cc1, cc2, cc3 = st.columns(3)
+        # 2-up: churn distribution (left) | at-risk table (right, wider)
+        cc1, cc2 = st.columns([2, 3])
         with cc1:
-            st.plotly_chart(_c(ch.churn_dist(rfm), 248),
+            st.plotly_chart(_c(ch.churn_dist(rfm), 280),
                             use_container_width=True, config={"displayModeBar": False})
         with cc2:
-            st.plotly_chart(_c(ch.feat_importance_chart(
-                    churn_info["feature_importance"], "Feature Importance"), 248),
-                            use_container_width=True, config={"displayModeBar": False})
-        with cc3:
             at_risk = (rfm[rfm["Churn_Pred"] == 1]
                        .sort_values("Churn_Prob", ascending=False).head(40)
                        [["Customer Key","Recency","Frequency","Monetary","Churn_Prob"]]
@@ -546,13 +530,14 @@ elif page == "👥 Customer Intelligence":
             st.dataframe(at_risk.style.format({
                 "Revenue ($)": "${:,.0f}", "Churn %": "{:.1f}%",
             }).background_gradient(subset=["Churn %"], cmap="RdYlGn_r"),
-                use_container_width=True, height=215,
+                use_container_width=True, height=280,
+                hide_index=True,
                 column_config={
-                    "Customer Key": st.column_config.NumberColumn("Cust ID",   width="small"),
-                    "Recency":      st.column_config.NumberColumn("Recency",   width="small"),
-                    "Frequency":    st.column_config.NumberColumn("Freq",      width="small"),
-                    "Revenue ($)":  st.column_config.TextColumn("Revenue",     width="small"),
-                    "Churn %":      st.column_config.TextColumn("Churn %",     width="small"),
+                    "Customer Key": st.column_config.NumberColumn("Customer ID",  width="medium"),
+                    "Recency":      st.column_config.NumberColumn("Recency (d)",  width="small"),
+                    "Frequency":    st.column_config.NumberColumn("Orders",       width="small"),
+                    "Revenue ($)":  st.column_config.TextColumn("Revenue",        width="medium"),
+                    "Churn %":      st.column_config.TextColumn("Churn Risk %",   width="medium"),
                 })
 
     with tab_seg:
@@ -584,24 +569,24 @@ elif page == "👥 Customer Intelligence":
                    .reset_index()
                    .sort_values("Avg_Monetary", ascending=False))
 
-        sc1, sc2 = st.columns([3, 2])
-        with sc1:
-            st.plotly_chart(_c(ch.rfm_3d(rfm_seg), 310),
-                            use_container_width=True, config={"displayModeBar": False})
-        with sc2:
-            st.caption("📋 Segment Summary")
-            st.dataframe(seg_sum.style.format({
-                "Avg_Recency":   "{:.0f} days",
-                "Avg_Frequency": "{:.0f}",
-                "Avg_Monetary":  "${:,.0f}",
-            }), use_container_width=True, height=285,
-            column_config={
-                "Segment Name":  st.column_config.TextColumn("Segment",   width="medium"),
-                "Count":         st.column_config.NumberColumn("Count",    width="small"),
-                "Avg_Recency":   st.column_config.TextColumn("Recency",   width="small"),
-                "Avg_Frequency": st.column_config.TextColumn("Frequency", width="small"),
-                "Avg_Monetary":  st.column_config.TextColumn("Revenue",   width="small"),
-            })
+        # 3D scatter full-width
+        st.plotly_chart(_c(ch.rfm_3d(rfm_seg), 340),
+                        use_container_width=True, config={"displayModeBar": False})
+
+        # Segment summary full-width below — all columns visible
+        st.caption("📋 Segment Summary")
+        st.dataframe(seg_sum.style.format({
+            "Avg_Recency":   "{:.0f}",
+            "Avg_Frequency": "{:.0f}",
+            "Avg_Monetary":  "${:,.0f}",
+        }), use_container_width=True, height=215, hide_index=True,
+        column_config={
+            "Segment Name":  st.column_config.TextColumn("Segment",        width="large"),
+            "Count":         st.column_config.NumberColumn("Customers",     width="medium"),
+            "Avg_Recency":   st.column_config.NumberColumn("Avg Recency (d)", width="medium"),
+            "Avg_Frequency": st.column_config.NumberColumn("Avg Orders",    width="medium"),
+            "Avg_Monetary":  st.column_config.TextColumn("Avg Revenue",     width="medium"),
+        })
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -640,46 +625,69 @@ elif page == "🏭 Supplier Analytics":
     tab_sc, tab_fu, tab_pillar = st.tabs(["🏆 Quality Scoring", "🔥 Fulfillment", "📊 Pillar Breakdown"])
 
     with tab_sc:
-        sa, sb = st.columns([3, 2])
-        with sa:
-            st.plotly_chart(_c(ch.supplier_scoreboard(sup_df), 285),
-                            use_container_width=True, config={"displayModeBar": False})
-        with sb:
-            st.plotly_chart(_c(ch.feat_importance_chart(
-                    sup_info["feature_importance"],
-                    "Supplier Quality — Feature Importance"), 285),
-                            use_container_width=True, config={"displayModeBar": False})
+        # Scoreboard full-width — no feature importance for end users
+        st.plotly_chart(_c(ch.supplier_scoreboard(sup_df), 320),
+                        use_container_width=True, config={"displayModeBar": False})
 
     with tab_fu:
-        fa, fb = st.columns([3, 2])
-        with fa:
-            st.plotly_chart(_c(ch.fulfillment_heatmap(pur), 290),
-                            use_container_width=True, config={"displayModeBar": False})
-        with fb:
-            st.caption("📋 Full Supplier Scorecard  *(True Fill = unit-weighted Σreceived/Σordered)*")
-            show_cols = ["Supplier", "Grade", "Quality_Score"]
-            show_cols += [c for c in ["True_Fulfillment","Trend_Direction","Total_Orders",
-                                       "Total_Value","Supplier Rating"] if c in sup_df.columns]
-            sc_df = sup_df[show_cols].sort_values("Quality_Score", ascending=False)
-            fmt = {"Quality_Score": "{:.1f}", "Total_Value": "${:,.0f}",
-                   "Supplier Rating": "{:.1f}"}
-            if "True_Fulfillment" in sc_df.columns:
-                fmt["True_Fulfillment"] = "{:.1f}%"
-            st.dataframe(sc_df.style.format(fmt)
-                         .background_gradient(subset=["Quality_Score"], cmap="RdYlGn"),
-                         use_container_width=True, height=270)
+        # Fulfillment heatmap full-width
+        st.plotly_chart(_c(ch.fulfillment_heatmap(pur), 320),
+                        use_container_width=True, config={"displayModeBar": False})
+
+        # Full scorecard table full-width below — all columns visible
+        st.caption("📋 Full Supplier Scorecard  *(True Fill = unit-weighted Σreceived/Σordered)*")
+        show_cols = ["Supplier", "Grade", "Quality_Score"]
+        show_cols += [c for c in ["True_Fulfillment", "Trend_Direction", "Total_Orders",
+                                   "Total_Value", "Supplier Rating"] if c in sup_df.columns]
+        sc_df = sup_df[show_cols].sort_values("Quality_Score", ascending=False)
+        fmt = {"Quality_Score": "{:.1f}", "Total_Value": "${:,.0f}",
+               "Supplier Rating": "{:.1f}"}
+        if "True_Fulfillment" in sc_df.columns:
+            fmt["True_Fulfillment"] = "{:.1f}%"
+        st.dataframe(
+            sc_df.style.format(fmt)
+                       .background_gradient(subset=["Quality_Score"], cmap="RdYlGn"),
+            use_container_width=True,
+            height=310,
+            hide_index=True,
+            column_config={
+                "Supplier":        st.column_config.TextColumn("Supplier",        width="large"),
+                "Grade":           st.column_config.TextColumn("Grade",           width="small"),
+                "Quality_Score":   st.column_config.NumberColumn("Score",         width="small",  format="%.1f"),
+                "True_Fulfillment":st.column_config.TextColumn("Fill Rate",       width="medium"),
+                "Trend_Direction": st.column_config.TextColumn("Trend",           width="medium"),
+                "Total_Orders":    st.column_config.NumberColumn("Orders",        width="small"),
+                "Total_Value":     st.column_config.TextColumn("Total Value",     width="medium"),
+                "Supplier Rating": st.column_config.NumberColumn("Rating",        width="small"),
+            },
+        )
 
     with tab_pillar:
         st.caption("📐 Pillar scores show where each supplier excels or lags (each 0-100)")
-        pillar_cols = [c for c in ["Supplier","Grade","P_Reliability","P_Consistency",
-                                    "P_Trend","P_Volume","P_Attributes","Quality_Score"]
+        pillar_cols = [c for c in ["Supplier", "Grade", "P_Reliability", "P_Consistency",
+                                    "P_Trend", "P_Volume", "P_Attributes", "Quality_Score"]
                        if c in sup_df.columns]
         if len(pillar_cols) > 2:
             p_df = sup_df[pillar_cols].sort_values("Quality_Score", ascending=False)
             gradient_cols = [c for c in p_df.columns if c.startswith("P_") or c == "Quality_Score"]
-            st.dataframe(p_df.style.format({c: "{:.1f}" for c in gradient_cols})
-                         .background_gradient(subset=gradient_cols, cmap="RdYlGn", vmin=0, vmax=100),
-                         use_container_width=True, height=350)
+            st.dataframe(
+                p_df.style
+                    .format({c: "{:.1f}" for c in gradient_cols})
+                    .background_gradient(subset=gradient_cols, cmap="RdYlGn", vmin=0, vmax=100),
+                use_container_width=True,
+                height=350,
+                hide_index=True,
+                column_config={
+                    "Supplier":       st.column_config.TextColumn("Supplier",       width="large"),
+                    "Grade":          st.column_config.TextColumn("Grade",          width="small"),
+                    "P_Reliability":  st.column_config.NumberColumn("Reliability",  width="medium", format="%.1f"),
+                    "P_Consistency":  st.column_config.NumberColumn("Consistency",  width="medium", format="%.1f"),
+                    "P_Trend":        st.column_config.NumberColumn("Trend",        width="medium", format="%.1f"),
+                    "P_Volume":       st.column_config.NumberColumn("Volume",       width="medium", format="%.1f"),
+                    "P_Attributes":   st.column_config.NumberColumn("Attributes",   width="medium", format="%.1f"),
+                    "Quality_Score":  st.column_config.NumberColumn("Total Score",  width="medium", format="%.1f"),
+                },
+            )
         else:
             st.info("Pillar scores not available — re-run scoring.")
 
