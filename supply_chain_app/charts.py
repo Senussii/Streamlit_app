@@ -117,21 +117,24 @@ def forecast_chart(info, selected_categories):
 
 # ── Inventory risk matrix ─────────────────────────────────────────────────────
 def inventory_risk_scatter(inv_df):
-    df = inv_df.copy().dropna(subset=["Quantity On Hand","Monthly_Velocity"])
-    df["Monthly_Velocity"] = df.get("Monthly_Velocity", pd.Series([0]*len(df)))
-    color_map = {"LOW":"#00C49A","MEDIUM":"#FFD700","HIGH":"#FF4C6E"}
+    # Drop rows missing the key axes; Monthly_Velocity is already populated
+    # by build_stockout_classifier (0 only when no movement matched the SKU).
+    df = inv_df.copy().dropna(subset=["Quantity On Hand", "Monthly_Velocity"])
+    color_map = {"LOW": "#00C49A", "MEDIUM": "#FFD700", "HIGH": "#FF4C6E"}
+    risk_col = "Predicted_Risk_Name" if "Predicted_Risk_Name" in df.columns else "Risk_Label_Name"
     fig = px.scatter(
         df, x="Quantity On Hand", y="Monthly_Velocity",
-        color="Predicted_Risk_Name" if "Predicted_Risk_Name" in df.columns else "Risk_Label_Name",
+        color=risk_col,
         color_discrete_map=color_map,
         size="Stock Value", size_max=30,
-        hover_data=["Stock Item","Stock Category","Days_Coverage"],
-        labels={"Quantity On Hand":"Stock on Hand",
-                "Monthly_Velocity":"Monthly Velocity (units)"},
+        hover_data=["Stock Item", "Stock Category", "Days_Coverage"],
+        labels={"Quantity On Hand": "Stock on Hand",
+                "Monthly_Velocity": "Monthly Velocity (units)"},
+        category_orders={risk_col: ["LOW", "MEDIUM", "HIGH"]},
     )
     fig.update_layout(**LAYOUT,
                       title=dict(text="Inventory Risk Matrix: Stock vs Velocity",
-                                 font=dict(size=15,color="#00D4FF")),
+                                 font=dict(size=15, color="#00D4FF")),
                       legend=dict(bgcolor="rgba(0,0,0,0)"))
     return fig
 
@@ -157,19 +160,22 @@ def supplier_scoreboard(sup_df):
 # ── Anomaly scatter ───────────────────────────────────────────────────────────
 def anomaly_chart(txn_df):
     df = txn_df.copy()
-    df["Color"] = df["Is_Anomaly"].map({True:"#FF4C6E", False:"#00D4FF"})
-    df["Label"] = df["Is_Anomaly"].map({True:"Anomaly","False":"Normal"})
+    # Convert boolean to string: px.scatter serialises bool→str for legend/color
+    # lookup, so colour_discrete_map must use string keys to match correctly.
+    df["Anomaly_Label"] = df["Is_Anomaly"].map({True: "Anomaly", False: "Normal"})
+    # Plot Normal (background) before Anomaly so red dots sit on top.
     fig = px.scatter(
         df, x="Total Including Tax", y="Outstanding Balance",
-        color="Is_Anomaly",
-        color_discrete_map={True:"#FF4C6E", False:"rgba(0,212,255,0.3)"},
-        opacity=0.7,
-        hover_data=["Transaction Key","Payment Method","Total Excluding Tax"],
-        labels={"Is_Anomaly":"Anomalous"},
+        color="Anomaly_Label",
+        color_discrete_map={"Anomaly": "#FF4C6E", "Normal": "rgba(0,212,255,0.45)"},
+        category_orders={"Anomaly_Label": ["Normal", "Anomaly"]},
+        opacity=0.75,
+        hover_data=["Transaction Key", "Payment Method", "Total Excluding Tax"],
+        labels={"Anomaly_Label": "Status"},
     )
     fig.update_layout(**LAYOUT,
                       title=dict(text="Transaction Anomaly Detection",
-                                 font=dict(size=15,color="#00D4FF")),
+                                 font=dict(size=15, color="#00D4FF")),
                       legend=dict(bgcolor="rgba(0,0,0,0)"))
     return fig
 

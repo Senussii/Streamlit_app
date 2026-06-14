@@ -312,12 +312,43 @@ h1 { margin-bottom: 0 !important; padding-bottom: 0 !important; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    DataFrames / Tables
+   — Vertical-scroll only (no horizontal overflow)
+   — Column resizing enabled via AG Grid defaults
+   — Keyboard cursor navigation: arrow keys, tab, enter (AG Grid built-in)
    ══════════════════════════════════════════════════════════════════════════ */
 [data-testid="stDataFrame"]          { border-radius: 9px !important; overflow: hidden; }
 [data-testid="stDataFrame"] table    { background: #0D1117 !important; }
 [data-testid="stDataFrame"] th       { background: #101820 !important; color: #8B949E !important; font-size: 0.75rem !important; }
 [data-testid="stDataFrame"] td       { color: #C9D1D9 !important; font-size: 0.8rem !important; }
 [data-testid="stDataFrame"] tr:hover { background: rgba(0,212,255,0.03) !important; }
+
+/* Restrict table containers to vertical scroll only */
+[data-testid="stDataFrame"] > div,
+[data-testid="stDataFrameResizable"],
+.stDataFrame [data-testid="stDataFrameResizable"] > div {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+}
+
+/* Column resize handle — make it more visible on hover */
+[data-testid="stDataFrame"] .ag-header-cell-resize {
+    width: 6px !important;
+    cursor: col-resize !important;
+    opacity: 0.4;
+    transition: opacity 0.15s;
+}
+[data-testid="stDataFrame"] .ag-header-cell-resize:hover { opacity: 1 !important; }
+
+/* Cursor / selection highlight for keyboard navigation */
+[data-testid="stDataFrame"] .ag-row-selected,
+[data-testid="stDataFrame"] .ag-cell-focus {
+    background: rgba(0, 212, 255, 0.07) !important;
+    border-color: rgba(0, 212, 255, 0.35) !important;
+    outline: none !important;
+}
+[data-testid="stDataFrame"] .ag-cell-focus {
+    border: 1px solid rgba(0, 212, 255, 0.45) !important;
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    Tabs

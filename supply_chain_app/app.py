@@ -242,7 +242,17 @@ if page == "🏠 Executive Dashboard":
     total_rev    = sale["Total Excluding Tax"].sum()
     total_profit = sale["Profit"].sum()
     margin_pct   = total_profit / total_rev * 100 if total_rev else 0
-    total_orders = len(sale)
+    # Count unique orders (invoices), not individual order lines.
+    # Try explicit order/invoice key columns first; fall back to a
+    # (Customer, Date) groupby which approximates one invoice per customer per day.
+    if "Order Key" in sale.columns:
+        total_orders = int(sale["Order Key"].nunique())
+    elif "Invoice Number" in sale.columns:
+        total_orders = int(sale["Invoice Number"].nunique())
+    else:
+        total_orders = int(sale.groupby(
+            ["Customer Key", "Invoice Date Key"]
+        ).ngroups)
     total_skus   = sale["Stock Item Key"].nunique()
     avg_order_v  = sale["Total Including Tax"].mean()
 
@@ -361,7 +371,18 @@ elif page == "📈 Demand Forecasting":
                        .sort_values(["Stock Category","Forecast Year","Forecast Month"])
                        .rename(columns={"Predicted_Qty": "Units"}))
             fc_show["Units"] = fc_show["Units"].round(0).astype(int)
-            st.dataframe(fc_show, use_container_width=True, height=215)
+            st.dataframe(fc_show,
+                         use_container_width=True, height=215,
+                         column_config={
+                             "Stock Category": st.column_config.TextColumn(
+                                 "Category", width="medium"),
+                             "Forecast Year":  st.column_config.NumberColumn(
+                                 "Year",     width="small",  format="%d"),
+                             "Forecast Month": st.column_config.NumberColumn(
+                                 "Month",    width="small",  format="%d"),
+                             "Units":          st.column_config.NumberColumn(
+                                 "Units",    width="small"),
+                         })
         else:
             st.info("Select categories above to see forecast values.")
 
@@ -489,10 +510,10 @@ elif page == "👥 Customer Intelligence":
 
         # KPI row
         k1, k2, k3, k4 = st.columns(4)
-        with k1: metric_card("Total Customers",  f"{len(rfm):,}")
-        with k2: metric_card("At-Risk",          f"{churn_count:,}",
+        with k1: metric_card("Total Customers",    f"{len(rfm):,}")
+        with k2: metric_card("At-Risk",            f"{churn_count:,}",
                               delta_str=f"⚠ {churn_rate:.1f}% rate")
-        with k3: metric_card("Active",           f"{active_cnt:,}")
+        with k3: metric_card("Low-Risk Customers", f"{active_cnt:,}")
         with k4: metric_card("ROC-AUC",
                               f"{churn_info['auc']:.3f}" if churn_info["auc"] else "N/A")
 
@@ -517,7 +538,14 @@ elif page == "👥 Customer Intelligence":
             st.dataframe(at_risk.style.format({
                 "Revenue ($)": "${:,.0f}", "Churn %": "{:.1f}%",
             }).background_gradient(subset=["Churn %"], cmap="RdYlGn_r"),
-                use_container_width=True, height=215)
+                use_container_width=True, height=215,
+                column_config={
+                    "Customer Key": st.column_config.NumberColumn("Cust ID",   width="small"),
+                    "Recency":      st.column_config.NumberColumn("Recency",   width="small"),
+                    "Frequency":    st.column_config.NumberColumn("Freq",      width="small"),
+                    "Revenue ($)":  st.column_config.TextColumn("Revenue",     width="small"),
+                    "Churn %":      st.column_config.TextColumn("Churn %",     width="small"),
+                })
 
     with tab_seg:
         with st.spinner("Segmenting customers…"):
@@ -531,12 +559,14 @@ elif page == "👥 Customer Intelligence":
             q_sil = "good" if sil_score > 0.45 else "warn" if sil_score > 0.25 else ""
             st.session_state.model_metrics["Seg Silhouette"] = (f"{sil_score:.3f}", q_sil)
 
-        # KPI strip
+        # KPI strip — use sale-level nunique so the number is consistent
+        # with the Churn tab (both count unique Customer Keys in the sale fact).
+        _total_cust = sale["Customer Key"].nunique()
         sk1, sk2, sk3 = st.columns(3)
         with sk1: metric_card("Segments Found",   str(best_k))
         with sk2: metric_card("Silhouette Score",
                                f"{sil_score:.3f}" if sil_score is not None else "N/A")
-        with sk3: metric_card("Total Customers",  f"{rfm_seg['Customer Key'].nunique():,}")
+        with sk3: metric_card("Total Customers",  f"{_total_cust:,}")
 
         seg_sum = (rfm_seg.groupby("Segment Name")
                    .agg(Count=("Customer Key","count"),
@@ -556,7 +586,14 @@ elif page == "👥 Customer Intelligence":
                 "Avg_Recency":   "{:.0f} days",
                 "Avg_Frequency": "{:.0f}",
                 "Avg_Monetary":  "${:,.0f}",
-            }), use_container_width=True, height=285)
+            }), use_container_width=True, height=285,
+            column_config={
+                "Segment Name":  st.column_config.TextColumn("Segment",   width="medium"),
+                "Count":         st.column_config.NumberColumn("Count",    width="small"),
+                "Avg_Recency":   st.column_config.TextColumn("Recency",   width="small"),
+                "Avg_Frequency": st.column_config.TextColumn("Frequency", width="small"),
+                "Avg_Monetary":  st.column_config.TextColumn("Revenue",   width="small"),
+            })
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -662,8 +699,11 @@ elif page == "🚨 Anomaly Detection":
     with k1: metric_card("Total Transactions",  f"{len(anom_df):,}")
     with k2: metric_card("Anomalies Detected",  f"{anom_info['anomaly_count']:,}",
                           delta_str=f"⚠ {anom_info['anomaly_rate']:.1f}% rate")
-    with k3: metric_card("$ Exposure",
-                          f"${anom_df[anom_df['Is_Anomaly']]['Total Including Tax'].abs().sum()/1e3:.0f}K")
+    _exposure = anom_df[anom_df["Is_Anomaly"]]["Total Including Tax"].abs().sum()
+    _exp_str  = (f"${_exposure/1e6:.1f}M" if _exposure >= 1e6
+                 else f"${_exposure/1e3:.1f}K" if _exposure >= 1e3
+                 else f"${_exposure:,.0f}")
+    with k3: metric_card("$ Exposure", _exp_str)
     with k4: metric_card("Normal Transactions", f"{(~anom_df['Is_Anomaly']).sum():,}")
 
     # Row 2 — charts (3-up)

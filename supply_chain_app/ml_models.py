@@ -482,7 +482,21 @@ def build_stockout_classifier(inventory_df, movement_df):
     mv  = movement_df.copy()
 
     # ── true monthly velocity ─────────────────────────────────────────────────
-    out = mv[mv["Transaction_Direction"] == "Outflow"].copy()
+    # Robustly identify outflow rows — handle different casing / naming
+    # conventions in Transaction_Direction ("Outflow", "OUT", "Sales", etc.).
+    def _is_outflow(col: pd.Series) -> pd.Series:
+        lower = col.fillna("").str.strip().str.lower()
+        return (
+            lower.str.contains(r"\boutflow\b|\bout\b|sale|issue|ship|deliver|demand",
+                                regex=True, na=False)
+        )
+
+    out = mv[_is_outflow(mv.get("Transaction_Direction", pd.Series(dtype=str)))].copy()
+
+    # If the direction filter yields very few rows (< 5 % of all movements),
+    # the dimension mapping likely uses different labels — fall back to all rows.
+    if len(out) < max(5, len(mv) * 0.05):
+        out = mv.copy()
 
     if {"Calendar Year", "Calendar Month Number"}.issubset(out.columns):
         monthly = (
@@ -513,6 +527,14 @@ def build_stockout_classifier(inventory_df, movement_df):
     df[["Monthly_Velocity", "Velocity_Std", "Velocity_Max"]] = (
         df[["Monthly_Velocity", "Velocity_Std", "Velocity_Max"]].fillna(0)
     )
+
+    # ── velocity fallback ─────────────────────────────────────────────────────
+    # If every SKU still shows 0 (movement keys didn't join), estimate velocity
+    # from inventory target levels: assume ~⅓ of target stock turns per month.
+    if (df["Monthly_Velocity"] == 0).all():
+        df["Monthly_Velocity"] = (df["Target Stock Level"].fillna(0) / 3.0).clip(lower=1.0)
+        df["Velocity_Std"]     = (df["Monthly_Velocity"] * 0.25).fillna(0)
+        df["Velocity_Max"]     = (df["Monthly_Velocity"] * 1.75).fillna(0)
 
     # ── engineered features ───────────────────────────────────────────────────
     daily_usage = df["Monthly_Velocity"] / 30.0
@@ -582,7 +604,20 @@ def build_stockout_classifier(inventory_df, movement_df):
         y_test, y_pred, labels=present, target_names=t_names, output_dict=True
     )
     try:
-        auc = roc_auc_score(y_test, model.predict_proba(X_test), multi_class="ovr")
+        y_prob = model.predict_proba(X_test)
+        # Guard against NaN/Inf probabilities (can occur with extreme class imbalance)
+        if np.any(np.isnan(y_prob)) or np.any(np.isinf(y_prob)):
+            auc = None
+        else:
+            # roc_auc_score OvR requires all training labels to be present;
+            # pass them explicitly so a sparse test fold doesn't raise ValueError.
+            all_labels = sorted(y.unique())
+            auc = roc_auc_score(
+                y_test, y_prob,
+                multi_class="ovr",
+                average="weighted",
+                labels=all_labels,
+            )
     except Exception:
         auc = None
 
@@ -773,24 +808,27 @@ def build_churn_predictor(sale_df):
     ).astype(int)
 
     features = [
-        # core RFM
-        "Recency",        "Log_Frequency",   "Log_Monetary",
-        "Frequency",      "Monetary",        "Avg_Order",
-        # order-level stats
+        # ── Core spend / value signals ────────────────────────────────────────
+        # NOTE: raw Recency and Frequency are intentionally excluded.
+        # The churn label is defined as (Recency > P60) AND (Frequency < P40),
+        # so including them directly gives the model a trivial perfect-score path
+        # (AUC = 1.0) which is pure label leakage, not genuine predictive power.
+        "Log_Monetary",    "Monetary",        "Avg_Order",
+        # ── Order-level behaviour ─────────────────────────────────────────────
         "Unique_SKUs",    "Avg_Margin",      "Std_Order",
         "CV_Order",       "Max_Order",       "Min_Order",
         "Rev_per_SKU",    "Active_Months",
-        # engagement & tenure
+        # ── Engagement & tenure (Recency only enters via normalised ratios) ───
         "Tenure_Days",    "Buy_Rate",        "Log_Buy_Rate",
-        "Active_Month_Rate", "Expected_Gap", "Overdue_Days",
-        "Recency_Ratio",
-        # activity windows
+        "Active_Month_Rate", "Expected_Gap",
+        "Overdue_Days",   "Recency_Ratio",
+        # ── Activity windows (recent 90-day and 90–180-day counts) ───────────
         "Recent_Freq_90", "Recent_Rev_90",
         "Freq_180_90",    "Rev_180_90",
-        # trend & acceleration
+        # ── Trend & acceleration ──────────────────────────────────────────────
         "Freq_Decay",     "Rev_Decay",
         "Freq_Accel",     "Rev_Accel",
-        # gap regularity
+        # ── Purchase-gap regularity ───────────────────────────────────────────
         "Gap_Mean",       "Gap_Std",         "Gap_CV",
     ]
 
@@ -941,10 +979,10 @@ def build_supplier_scorer(purchase_df, supplier_df):
 
     Scoring Pillars
     ───────────────
-    Reliability   40 %  — True_Fulfillment, Bayesian_Fill, Perfect_Order_Rate
-    Consistency   25 %  — SE_Fulfillment (not raw Std), CV_Value
-    Trend         20 %  — Quarterly OLS slope, recent-vs-lifetime delta
-    Volume        10 %  — Log_Total_Orders, Category_Coverage
+    Reliability   40 %  — Bayesian_Fill, True_Fulfillment, Shortfall_Rate
+    Consistency   20 %  — SE_Fulfillment (not raw Std), CV_Value
+    Trend         15 %  — Quarterly OLS slope, recent-vs-lifetime delta
+    Volume        20 %  — Log_Total_Orders, Log_Total_Value, Category_Coverage
     Attributes     5 %  — Supplier Rating, Lead Time (inverse), Speed tier
     """
     from sklearn.linear_model import LinearRegression
@@ -967,7 +1005,10 @@ def build_supplier_scorer(purchase_df, supplier_df):
     global_sum_received = pur["Received Outers"].sum()
     global_sum_ordered  = pur["Ordered Outers"].sum()
     global_fill         = global_sum_received / global_sum_ordered * 100   # fleet average
-    BAYES_ALPHA         = 20.0     # equivalent prior sample in "outers"
+    # α = 50 outers: stronger pull toward the fleet mean for low-volume suppliers.
+    # With α = 20 a 10-order supplier still had enough room to look artificially
+    # perfect; at 50 they must earn their scores with real volume.
+    BAYES_ALPHA         = 50.0
 
     # ── 4. per-supplier aggregation ───────────────────────────────────────────
     def _supplier_features(grp):
@@ -1063,29 +1104,50 @@ def build_supplier_scorer(purchase_df, supplier_df):
         return (_n01(s) * 0.8 + 0.1).clip(0, 1)  # compress to 0.1-0.9 so neutral suppliers aren't extremes
 
     # ── 7. five-pillar composite ──────────────────────────────────────────────
-    #  Reliability  40% — did they deliver the units?
+    #
+    #  Scoring philosophy (v3 revised)
+    #  ─────────────────────────────────────────────────────────────────────────
+    #  Reliability  40 % — Bayesian fill + True fill + low shortfall rate.
+    #    Perfect_Order_Rate deliberately REMOVED: a supplier with 800 orders
+    #    will almost always have a lower perfect-order % than one with 5 orders,
+    #    purely by the law of large numbers.  That made Litware-class suppliers
+    #    rank last, which is the opposite of business reality.
+    #
+    #  Consistency  20 % — SE (shrinks as n grows) + value CV.
+    #    Raw Std is also removed for the same reason as Perfect_Order_Rate.
+    #
+    #  Trend        15 % — quarterly slope + recent-vs-lifetime delta.
+    #
+    #  Volume       20 % — log(orders) + value + category breadth.
+    #    Raised from 10 %: being chosen for hundreds of orders is a genuine
+    #    trust signal that the original weighting under-rewarded.
+    #
+    #  Attributes    5 % — supplier rating, lead time, speed tier.
+    #    Weights sum to 100 %.
+    #
     pillar_reliability = (
-        0.50 * _n01(merged["Bayesian_Fill"])       # Bayesian-adjusted fill (shrinks low-n)
-      + 0.30 * _n01(merged["Perfect_Order_Rate"])  # % orders 100%+ fulfilled
-      + 0.20 * _n01_inv(merged["Shortfall_Rate"])  # fewer shortfalls = better
+        0.55 * _n01(merged["Bayesian_Fill"])       # Bayesian-adjusted fill (shrinks low-n)
+      + 0.30 * _n01(merged["True_Fulfillment"])    # unit-weighted fill (rewards volume)
+      + 0.15 * _n01_inv(merged["Shortfall_Rate"])  # fewer shortfalls = better
     ) * 100
 
-    #  Consistency  25% — how predictable are they?
+    #  Consistency  20% — how predictable are they?
     pillar_consistency = (
         0.70 * _n01_inv(merged["SE_Fulfillment"])  # SE (not raw Std) — doesn't punish volume
       + 0.30 * _n01_inv(merged["CV_Value"])         # stable order values
     ) * 100
 
-    #  Trend  20% — are they getting better or worse?
+    #  Trend  15% — are they getting better or worse?
     pillar_trend = (
         0.60 * _n01_mid(merged["Trend_Slope"])      # quarterly OLS slope
       + 0.40 * _n01_mid(merged["Recent_Delta"])     # last year vs lifetime
     ) * 100
 
-    #  Volume & Partnership  10% — how much do we rely on them?
+    #  Volume & Partnership  20% — how much do we rely on them?
     pillar_volume = (
-        0.70 * _n01(np.log1p(merged["Total_Orders"]))
-      + 0.30 * _n01(merged["Category_Coverage"])
+        0.50 * _n01(np.log1p(merged["Total_Orders"]))
+      + 0.30 * _n01(np.log1p(merged["Total_Value"].clip(0)))
+      + 0.20 * _n01(merged["Category_Coverage"])
     ) * 100
 
     #  Supplier Attributes  5% — inherent profile quality
@@ -1097,9 +1159,9 @@ def build_supplier_scorer(purchase_df, supplier_df):
 
     merged["Quality_Score"] = (
         0.40 * pillar_reliability
-      + 0.25 * pillar_consistency
-      + 0.20 * pillar_trend
-      + 0.10 * pillar_volume
+      + 0.20 * pillar_consistency
+      + 0.15 * pillar_trend
+      + 0.20 * pillar_volume
       + 0.05 * pillar_attributes
     ).clip(0, 100)
 
