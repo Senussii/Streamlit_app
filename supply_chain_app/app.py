@@ -129,8 +129,8 @@ def _forecast(sale_slim, horizon):
 
 @st.cache_data(show_spinner=False, max_entries=2,
                hash_funcs={pd.DataFrame: _fast_hash})
-def _stockout(inv_raw, mv):
-    return build_stockout_classifier(inv_raw, mv)
+def _stockout(inv_raw, mv, sale):
+    return build_stockout_classifier(inv_raw, mv, sale_df=sale)
 
 
 @st.cache_data(show_spinner=False, max_entries=2,
@@ -354,37 +354,14 @@ elif page == "📈 Demand Forecasting":
             _c(ch.forecast_chart(info, selected), 260),
             use_container_width=True, config={"displayModeBar": False})
 
-    # Row 3 — diagnostics (always shown)
-    d1, d2, d3 = st.columns(3)
+    # Row 3 — Feature Importance + Actual vs Predicted (side by side)
+    d1, d3 = st.columns(2)
 
     with d1:
         st.plotly_chart(
             _c(ch.feat_importance_chart(info["feature_importance"],
                "Feature Importance"), 230),
             use_container_width=True, config={"displayModeBar": False})
-
-    with d2:
-        st.caption("📋 Forecast Table")
-        if selected and not info["forecast_df"].empty:
-            fc_show = (info["forecast_df"][info["forecast_df"]["Stock Category"].isin(selected)]
-                       [["Stock Category","Forecast Year","Forecast Month","Predicted_Qty"]]
-                       .sort_values(["Stock Category","Forecast Year","Forecast Month"])
-                       .rename(columns={"Predicted_Qty": "Units"}))
-            fc_show["Units"] = fc_show["Units"].round(0).astype(int)
-            st.dataframe(fc_show,
-                         use_container_width=True, height=215,
-                         column_config={
-                             "Stock Category": st.column_config.TextColumn(
-                                 "Category", width="medium"),
-                             "Forecast Year":  st.column_config.NumberColumn(
-                                 "Year",     width="small",  format="%d"),
-                             "Forecast Month": st.column_config.NumberColumn(
-                                 "Month",    width="small",  format="%d"),
-                             "Units":          st.column_config.NumberColumn(
-                                 "Units",    width="small"),
-                         })
-        else:
-            st.info("Select categories above to see forecast values.")
 
     with d3:
         fig_ap = go.Figure()
@@ -406,6 +383,37 @@ elif page == "📈 Demand Forecasting":
         st.plotly_chart(_c(fig_ap, 230),
                         use_container_width=True, config={"displayModeBar": False})
 
+    # Row 4 — Forecast table FULL WIDTH so every column is visible without scrolling
+    st.caption("📋 Forecast Table")
+    if selected and not info["forecast_df"].empty:
+        fc_show = (
+            info["forecast_df"][info["forecast_df"]["Stock Category"].isin(selected)]
+            [["Stock Category", "Forecast Year", "Forecast Month", "Predicted_Qty"]]
+            .sort_values(["Stock Category", "Forecast Year", "Forecast Month"])
+            .rename(columns={
+                "Stock Category": "Category",
+                "Forecast Year":  "Year",
+                "Forecast Month": "Month",
+                "Predicted_Qty":  "Forecast Units",
+            })
+            .reset_index(drop=True)
+        )
+        fc_show["Forecast Units"] = fc_show["Forecast Units"].round(0).astype(int)
+        st.dataframe(
+            fc_show,
+            use_container_width=True,
+            height=230,
+            hide_index=True,
+            column_config={
+                "Category":      st.column_config.TextColumn("Category",       width="large"),
+                "Year":          st.column_config.NumberColumn("Year",          width="small", format="%d"),
+                "Month":         st.column_config.NumberColumn("Month",         width="small", format="%d"),
+                "Forecast Units": st.column_config.NumberColumn("Forecast Units", width="medium"),
+            },
+        )
+    else:
+        st.info("Select categories above to see forecast values.")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 3 — INVENTORY RISK
@@ -418,7 +426,7 @@ elif page == "📦 Inventory Risk":
     st.caption("LightGBM Classifier · Corrected Monthly Velocity · Stockout Alerts")
 
     with st.spinner("Running stockout risk model…"):
-        inv_info = _stockout(inv_raw, mv)
+        inv_info = _stockout(inv_raw, mv, sale)
 
     inv_df    = inv_info["df"]
     high      = (inv_df["Predicted_Risk_Name"] == "HIGH").sum()

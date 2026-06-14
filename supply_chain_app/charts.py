@@ -159,24 +159,59 @@ def supplier_scoreboard(sup_df):
 
 # ── Anomaly scatter ───────────────────────────────────────────────────────────
 def anomaly_chart(txn_df):
+    """
+    Plot ALL transactions — Normal as a faint blue cloud, Anomalies as bright
+    red dots on top.  Two explicit go.Scatter traces are used instead of
+    px.scatter so there is zero ambiguity about colour/opacity mapping:
+    px.scatter serialises boolean Is_Anomaly to strings and combines marker
+    opacity with any alpha already in the colour string, both of which caused
+    the Normal trace to be essentially invisible (effective alpha ~0.2).
+    """
     df = txn_df.copy()
-    # Convert boolean to string: px.scatter serialises bool→str for legend/color
-    # lookup, so colour_discrete_map must use string keys to match correctly.
-    df["Anomaly_Label"] = df["Is_Anomaly"].map({True: "Anomaly", False: "Normal"})
-    # Plot Normal (background) before Anomaly so red dots sit on top.
-    fig = px.scatter(
-        df, x="Total Including Tax", y="Outstanding Balance",
-        color="Anomaly_Label",
-        color_discrete_map={"Anomaly": "#FF4C6E", "Normal": "rgba(0,212,255,0.45)"},
-        category_orders={"Anomaly_Label": ["Normal", "Anomaly"]},
-        opacity=0.75,
-        hover_data=["Transaction Key", "Payment Method", "Total Excluding Tax"],
-        labels={"Anomaly_Label": "Status"},
+    # coerce Is_Anomaly to plain bool regardless of original dtype
+    is_anom = df["Is_Anomaly"].astype(bool)
+    normal   = df[~is_anom]
+    anomalous = df[is_anom]
+
+    fig = go.Figure()
+
+    # ① Normal transactions — small, faint, rendered first (background)
+    fig.add_trace(go.Scatter(
+        x=normal["Total Including Tax"],
+        y=normal["Outstanding Balance"],
+        mode="markers",
+        name=f"Normal ({len(normal):,})",
+        marker=dict(color="#00D4FF", size=4, opacity=0.25),
+        hovertemplate=(
+            "<b>Normal</b><br>"
+            "Total incl. Tax: $%{x:,.0f}<br>"
+            "Outstanding Balance: $%{y:,.0f}<extra></extra>"
+        ),
+    ))
+
+    # ② Anomalous transactions — larger, vivid red, rendered on top
+    fig.add_trace(go.Scatter(
+        x=anomalous["Total Including Tax"],
+        y=anomalous["Outstanding Balance"],
+        mode="markers",
+        name=f"Anomaly ({len(anomalous):,})",
+        marker=dict(color="#FF4C6E", size=7, opacity=0.85,
+                    line=dict(color="#FF4C6E", width=0.5)),
+        hovertemplate=(
+            "<b>🚨 Anomaly</b><br>"
+            "Total incl. Tax: $%{x:,.0f}<br>"
+            "Outstanding Balance: $%{y:,.0f}<extra></extra>"
+        ),
+    ))
+
+    fig.update_layout(
+        **LAYOUT,
+        title=dict(text="Transaction Anomaly Detection",
+                   font=dict(size=15, color="#00D4FF")),
+        xaxis_title="Total Including Tax ($)",
+        yaxis_title="Outstanding Balance ($)",
+        legend=dict(bgcolor="rgba(0,0,0,0)"),
     )
-    fig.update_layout(**LAYOUT,
-                      title=dict(text="Transaction Anomaly Detection",
-                                 font=dict(size=15, color="#00D4FF")),
-                      legend=dict(bgcolor="rgba(0,0,0,0)"))
     return fig
 
 

@@ -463,78 +463,100 @@ def build_demand_forecast(sale_df, horizon_months: int = 3):
 # ══════════════════════════════════════════════════════════════════════════════
 # 2. STOCKOUT RISK CLASSIFIER
 # ══════════════════════════════════════════════════════════════════════════════
-def build_stockout_classifier(inventory_df, movement_df):
+def build_stockout_classifier(inventory_df, movement_df, sale_df=None):
     """
     Classifies each SKU as HIGH / MEDIUM / LOW stockout risk.
 
-    v2 fixes & additions
-    ─────────────────────
-    Monthly velocity: outflow quantities are summed per SKU×month, then
-    averaged — giving true units/month. The original `mean` over transactions
-    gave average units per individual movement line, which drastically
-    underestimated velocity for high-frequency items.
-
-    Days_Coverage = QoH / (monthly_velocity / 30) is now dimensionally sound.
-
-    New features: Lead_Demand, Safety_Margin, Overstock_Ratio.
+    Velocity source priority
+    ────────────────────────
+    1. sale_df (mart_sales) — units sold per SKU×month, the most direct
+       demand signal and most reliably keyed on Stock Item Key.
+    2. movement_df — outflow quantities; used when sale_df is not supplied.
+    3. Fallback heuristic — Target Stock Level / 3 when both join attempts
+       produce more than 80 % zero-velocity SKUs (key mismatch in the data).
     """
     inv = inventory_df.copy()
     mv  = movement_df.copy()
 
-    # ── true monthly velocity ─────────────────────────────────────────────────
-    # Robustly identify outflow rows — handle different casing / naming
-    # conventions in Transaction_Direction ("Outflow", "OUT", "Sales", etc.).
-    def _is_outflow(col: pd.Series) -> pd.Series:
-        lower = col.fillna("").str.strip().str.lower()
-        return (
-            lower.str.contains(r"\boutflow\b|\bout\b|sale|issue|ship|deliver|demand",
-                                regex=True, na=False)
-        )
+    # ── monthly demand velocity ───────────────────────────────────────────────
+    # Priority 1: use sales fact (most reliable — always keyed on Stock Item Key)
+    def _vel_from_df(df_src, qty_col="Quantity"):
+        """Compute average monthly units per SKU from any fact with Quantity."""
+        if df_src is None or df_src.empty:
+            return pd.DataFrame(columns=["Stock Item Key",
+                                         "Monthly_Velocity", "Velocity_Std", "Velocity_Max"])
+        s = df_src.copy()
+        group_cols = ["Stock Item Key"]
+        if "Calendar Year" in s.columns and "Calendar Month Number" in s.columns:
+            group_cols += ["Calendar Year", "Calendar Month Number"]
+            monthly = (
+                s.groupby(group_cols)[qty_col]
+                 .sum().reset_index()
+                 .rename(columns={qty_col: "_Qty"})
+            )
+            return (
+                monthly.groupby("Stock Item Key")["_Qty"]
+                       .agg(Monthly_Velocity="mean",
+                            Velocity_Std="std",
+                            Velocity_Max="max")
+                       .reset_index()
+            )
+        else:
+            return (
+                s.groupby("Stock Item Key")[qty_col]
+                 .agg(Monthly_Velocity="mean",
+                      Velocity_Std="std",
+                      Velocity_Max="max")
+                 .reset_index()
+            )
 
-    out = mv[_is_outflow(mv.get("Transaction_Direction", pd.Series(dtype=str)))].copy()
-
-    # If the direction filter yields very few rows (< 5 % of all movements),
-    # the dimension mapping likely uses different labels — fall back to all rows.
-    if len(out) < max(5, len(mv) * 0.05):
-        out = mv.copy()
-
-    if {"Calendar Year", "Calendar Month Number"}.issubset(out.columns):
-        monthly = (
-            out.groupby(
-                ["Stock Item Key", "Calendar Year", "Calendar Month Number"]
-            )["Quantity"]
-            .sum()
-            .reset_index()
-            .rename(columns={"Quantity": "Monthly_Qty"})
+    def _merge_vel(base_df, vel_df):
+        df = base_df.merge(vel_df, on="Stock Item Key", how="left")
+        df[["Monthly_Velocity", "Velocity_Std", "Velocity_Max"]] = (
+            df[["Monthly_Velocity", "Velocity_Std", "Velocity_Max"]].fillna(0)
         )
-        vel = (
-            monthly.groupby("Stock Item Key")["Monthly_Qty"]
-            .agg(Monthly_Velocity="mean", Velocity_Std="std", Velocity_Max="max")
-            .reset_index()
-        )
+        df["Velocity_Std"] = df["Velocity_Std"].fillna(0)
+        df["Velocity_Max"] = df["Velocity_Max"].fillna(0)
+        return df
+
+    # Try sale data first (most reliable)
+    if sale_df is not None and not sale_df.empty and "Quantity" in sale_df.columns:
+        vel = _vel_from_df(sale_df, qty_col="Quantity")
+        df  = _merge_vel(inv, vel)
     else:
-        # fallback: per-transaction aggregate (less accurate)
-        vel = (
-            out.groupby("Stock Item Key")["Quantity"]
-            .agg(Monthly_Velocity="mean", Velocity_Std="std", Velocity_Max="max")
-            .reset_index()
-        )
+        df  = inv.copy()
+        df[["Monthly_Velocity", "Velocity_Std", "Velocity_Max"]] = 0.0
 
-    vel["Velocity_Std"] = vel["Velocity_Std"].fillna(0)
-    vel["Velocity_Max"] = vel["Velocity_Max"].fillna(0)
+    # If >80 % of SKUs still have zero velocity, try movement data
+    if (df["Monthly_Velocity"] == 0).mean() > 0.8 and len(mv) > 0:
+        # Robustly identify outflow rows
+        def _is_outflow(col):
+            return col.fillna("").str.strip().str.lower().str.contains(
+                r"\boutflow\b|\bout\b|sale|issue|ship|deliver|demand",
+                regex=True, na=False
+            )
+        out = mv[_is_outflow(mv.get("Transaction_Direction",
+                                    pd.Series(dtype=str)))].copy()
+        if len(out) < max(5, len(mv) * 0.05):
+            out = mv.copy()  # direction labels don't match — use all movement
+        qty_col_mv = "Quantity" if "Quantity" in out.columns else out.select_dtypes("number").columns[0]
+        vel_mv = _vel_from_df(out, qty_col=qty_col_mv)
+        df_mv  = _merge_vel(inv, vel_mv)
+        # Only adopt movement velocity where sale data gave 0
+        zero_mask = df["Monthly_Velocity"] == 0
+        df.loc[zero_mask, "Monthly_Velocity"] = df_mv.loc[zero_mask, "Monthly_Velocity"]
+        df.loc[zero_mask, "Velocity_Std"]     = df_mv.loc[zero_mask, "Velocity_Std"]
+        df.loc[zero_mask, "Velocity_Max"]     = df_mv.loc[zero_mask, "Velocity_Max"]
 
-    df = inv.merge(vel, on="Stock Item Key", how="left")
-    df[["Monthly_Velocity", "Velocity_Std", "Velocity_Max"]] = (
-        df[["Monthly_Velocity", "Velocity_Std", "Velocity_Max"]].fillna(0)
-    )
-
-    # ── velocity fallback ─────────────────────────────────────────────────────
-    # If every SKU still shows 0 (movement keys didn't join), estimate velocity
-    # from inventory target levels: assume ~⅓ of target stock turns per month.
-    if (df["Monthly_Velocity"] == 0).all():
-        df["Monthly_Velocity"] = (df["Target Stock Level"].fillna(0) / 3.0).clip(lower=1.0)
-        df["Velocity_Std"]     = (df["Monthly_Velocity"] * 0.25).fillna(0)
-        df["Velocity_Max"]     = (df["Monthly_Velocity"] * 1.75).fillna(0)
+    # Final heuristic fallback — if still mostly zeros, estimate from reorder levels
+    zero_mask = df["Monthly_Velocity"] == 0
+    if zero_mask.mean() > 0.5:
+        # Assume ~⅓ of Target Stock Level turns per month as a conservative estimate
+        df.loc[zero_mask, "Monthly_Velocity"] = (
+            df.loc[zero_mask, "Target Stock Level"].fillna(0) / 3.0
+        ).clip(lower=1.0)
+        df.loc[zero_mask, "Velocity_Std"] = df.loc[zero_mask, "Monthly_Velocity"] * 0.25
+        df.loc[zero_mask, "Velocity_Max"] = df.loc[zero_mask, "Monthly_Velocity"] * 1.75
 
     # ── engineered features ───────────────────────────────────────────────────
     daily_usage = df["Monthly_Velocity"] / 30.0
@@ -1091,71 +1113,115 @@ def build_supplier_scorer(purchase_df, supplier_df):
     merged["Lead Time Days (Supplier)"] = merged["Lead Time Days (Supplier)"].fillna(
                                             merged["Lead Time Days (Supplier)"].median())
 
-    # ── 6. normalise each metric to 0-1 across fleet ─────────────────────────
-    def _n01(s):
+    # ── 6. scoring helpers ────────────────────────────────────────────────────
+    #
+    # KEY DESIGN DECISION — absolute vs relative scoring
+    # ──────────────────────────────────────────────────
+    # Relative min-max (_n01) scores each metric against the fleet min/max.
+    # This means the supplier with the lowest fill rate always scores 0, even
+    # if their absolute fill rate is 92 % — a perfectly acceptable level.
+    # For high-volume suppliers like Litware this is especially punishing:
+    # with hundreds of orders, any variance in per-order fill pushes their
+    # aggregate slightly below a 5-order supplier who happened to deliver
+    # perfectly every time.  Result: P_Reliability = 0 for the best partner.
+    #
+    # FIX: reliability metrics (fill rate, shortfall rate) use ABSOLUTE
+    # piecewise-linear benchmarks anchored to real supply-chain standards.
+    # Volume, consistency, trend, and attribute metrics still use relative
+    # scaling because they are inherently comparative.
+    #
+    def _score_fill(s):
+        """
+        Absolute fill-rate → score (0-100).
+        ≥ 99 %  → 95-100   (outstanding)
+        95-99 % → 75-95    (good)
+        88-95 % → 45-75    (acceptable)
+        80-88 % → 15-45    (poor)
+        < 80 %  → 0-15     (very poor)
+        A supplier at 95 % always earns 75, never 0.
+        """
+        s = pd.to_numeric(s, errors="coerce").fillna(0)
+        score = pd.Series(np.where(
+            s >= 99, 95 + (s - 99) * 5,
+        np.where(
+            s >= 95, 75 + (s - 95) * 5,
+        np.where(
+            s >= 88, 45 + (s - 88) * (30 / 7),
+        np.where(
+            s >= 80, 15 + (s - 80) * (30 / 8),
+            s * (15 / 80)
+        )))), index=s.index)
+        return score.clip(0, 100)
+
+    def _score_shortfall(s):
+        """
+        Absolute shortfall rate → score (0-100, inverted).
+        0 %   → 100   (no shortfalls at all)
+        5 %   → 85
+        15 %  → 55
+        30 %  → 10
+        > 35% → 0
+        """
+        s = pd.to_numeric(s, errors="coerce").fillna(0)
+        score = pd.Series(np.where(
+            s <= 5,  100 - s * 3,
+        np.where(
+            s <= 15, 85 - (s - 5) * 3,
+        np.where(
+            s <= 30, 55 - (s - 15) * (45 / 15),
+            (35 - s.clip(0, 35)) * (10 / 5)
+        ))), index=s.index)
+        return score.clip(0, 100)
+
+    def _n01(s):       # relative 0-1 (still used for volume / attributes)
         mn, mx = s.min(), s.max()
         return (s - mn) / (mx - mn + 1e-9)
 
-    def _n01_inv(s):     # higher raw value = WORSE (e.g. lead time, SE, CV)
+    def _n01_inv(s):   # higher raw = worse (SE, CV, lead time)
         return 1.0 - _n01(s)
 
-    def _n01_mid(s):     # centred on 0; positive slope = good, negative = bad
-        # map to 0-1 where 0.5 = no change, 1 = strongly improving
-        return (_n01(s) * 0.8 + 0.1).clip(0, 1)  # compress to 0.1-0.9 so neutral suppliers aren't extremes
+    def _n01_mid(s):   # centred on 0; positive slope = good
+        return (_n01(s) * 0.8 + 0.1).clip(0, 1)
 
     # ── 7. five-pillar composite ──────────────────────────────────────────────
     #
-    #  Scoring philosophy (v3 revised)
-    #  ─────────────────────────────────────────────────────────────────────────
-    #  Reliability  40 % — Bayesian fill + True fill + low shortfall rate.
-    #    Perfect_Order_Rate deliberately REMOVED: a supplier with 800 orders
-    #    will almost always have a lower perfect-order % than one with 5 orders,
-    #    purely by the law of large numbers.  That made Litware-class suppliers
-    #    rank last, which is the opposite of business reality.
-    #
-    #  Consistency  20 % — SE (shrinks as n grows) + value CV.
-    #    Raw Std is also removed for the same reason as Perfect_Order_Rate.
-    #
-    #  Trend        15 % — quarterly slope + recent-vs-lifetime delta.
-    #
-    #  Volume       20 % — log(orders) + value + category breadth.
-    #    Raised from 10 %: being chosen for hundreds of orders is a genuine
-    #    trust signal that the original weighting under-rewarded.
-    #
-    #  Attributes    5 % — supplier rating, lead time, speed tier.
-    #    Weights sum to 100 %.
-    #
+    # Reliability 40 % — absolute fill benchmarks so Litware at 95 % fill
+    #   earns ~75 / 100, not 0.  Prior version's relative normalisation gave 0
+    #   to whoever had the lowest fill rate in the fleet, penalising the highest-
+    #   volume suppliers simply because variance grows with order count.
     pillar_reliability = (
-        0.55 * _n01(merged["Bayesian_Fill"])       # Bayesian-adjusted fill (shrinks low-n)
-      + 0.30 * _n01(merged["True_Fulfillment"])    # unit-weighted fill (rewards volume)
-      + 0.15 * _n01_inv(merged["Shortfall_Rate"])  # fewer shortfalls = better
-    ) * 100
+        0.55 * _score_fill(merged["Bayesian_Fill"])
+      + 0.30 * _score_fill(merged["True_Fulfillment"])
+      + 0.15 * _score_shortfall(merged["Shortfall_Rate"])
+    )
 
-    #  Consistency  20% — how predictable are they?
+    # Consistency 20 % — SE shrinks with n, so high-volume suppliers are
+    # correctly rewarded for the statistical certainty they provide.
     pillar_consistency = (
-        0.70 * _n01_inv(merged["SE_Fulfillment"])  # SE (not raw Std) — doesn't punish volume
-      + 0.30 * _n01_inv(merged["CV_Value"])         # stable order values
-    ) * 100
+        0.70 * _n01_inv(merged["SE_Fulfillment"]) * 100
+      + 0.30 * _n01_inv(merged["CV_Value"]) * 100
+    )
 
-    #  Trend  15% — are they getting better or worse?
+    # Trend 15 % — is the supplier getting better or worse?
     pillar_trend = (
-        0.60 * _n01_mid(merged["Trend_Slope"])      # quarterly OLS slope
-      + 0.40 * _n01_mid(merged["Recent_Delta"])     # last year vs lifetime
-    ) * 100
+        0.60 * _n01_mid(merged["Trend_Slope"]) * 100
+      + 0.40 * _n01_mid(merged["Recent_Delta"]) * 100
+    )
 
-    #  Volume & Partnership  20% — how much do we rely on them?
+    # Volume & Partnership 20 % — being chosen for many high-value orders
+    # is an explicit trust signal; relative normalisation is fine here.
     pillar_volume = (
-        0.50 * _n01(np.log1p(merged["Total_Orders"]))
-      + 0.30 * _n01(np.log1p(merged["Total_Value"].clip(0)))
-      + 0.20 * _n01(merged["Category_Coverage"])
-    ) * 100
+        0.50 * _n01(np.log1p(merged["Total_Orders"])) * 100
+      + 0.30 * _n01(np.log1p(merged["Total_Value"].clip(0))) * 100
+      + 0.20 * _n01(merged["Category_Coverage"]) * 100
+    )
 
-    #  Supplier Attributes  5% — inherent profile quality
+    # Supplier Attributes 5 % — inherent profile quality
     pillar_attributes = (
-        0.50 * _n01(merged["Supplier Rating"])
-      + 0.30 * _n01_inv(merged["Lead Time Days (Supplier)"])
-      + 0.20 * _n01(merged["Speed_Code"].astype(float))
-    ) * 100
+        0.50 * _n01(merged["Supplier Rating"]) * 100
+      + 0.30 * _n01_inv(merged["Lead Time Days (Supplier)"]) * 100
+      + 0.20 * _n01(merged["Speed_Code"].astype(float)) * 100
+    )
 
     merged["Quality_Score"] = (
         0.40 * pillar_reliability
