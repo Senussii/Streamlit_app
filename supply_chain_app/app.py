@@ -472,19 +472,19 @@ elif page == "📦 Inventory Risk":
 
     # Row 3 — HIGH Risk table full-width + Classification Report below
     st.caption("⚠️ HIGH Risk SKUs — Immediate Reorder Needed")
-        high_df = (inv_df[inv_df["Predicted_Risk_Name"] == "HIGH"]
-                             [["Stock Item","Stock Category","Quantity On Hand",
-                                 "Reorder Level","Target Stock Level","Monthly_Velocity",
-                                 "Days_Coverage","Stock Value","Lead Time Days"]]
-                             .sort_values("Quantity On Hand"))
-        st.dataframe(high_df.style.format({
+    high_df = (inv_df[inv_df["Predicted_Risk_Name"] == "HIGH"]
+               [["Stock Item","Stock Category","Quantity On Hand",
+                 "Reorder Level","Target Stock Level","Monthly_Velocity",
+                 "Days_Coverage","Stock Value","Lead Time Days"]]
+               .sort_values("Quantity On Hand"))
+    st.dataframe(high_df.style.format({
         "Quantity On Hand":   "{:,.0f}",
         "Reorder Level":      "{:,.0f}",
         "Target Stock Level": "{:,.0f}",
         "Monthly_Velocity":   "{:,.1f}",
         "Days_Coverage":      "{:,.0f}",
         "Stock Value":        "${:,.2f}",
-        }), use_container_width=True, height=300, hide_index=True)
+    }), use_container_width=True, height=300, hide_index=True)
 
     if inv_info["report"]:
         with st.expander("📋 Classification Report", expanded=False):
