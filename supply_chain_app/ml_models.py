@@ -627,19 +627,28 @@ def build_stockout_classifier(inventory_df, movement_df, sale_df=None):
     )
     try:
         y_prob = model.predict_proba(X_test)
-        # Guard against NaN/Inf probabilities (can occur with extreme class imbalance)
         if np.any(np.isnan(y_prob)) or np.any(np.isinf(y_prob)):
             auc = None
         else:
-            # roc_auc_score OvR requires all training labels to be present;
-            # pass them explicitly so a sparse test fold doesn't raise ValueError.
-            all_labels = sorted(y.unique())
-            auc = roc_auc_score(
-                y_test, y_prob,
-                multi_class="ovr",
-                average="weighted",
-                labels=all_labels,
-            )
+            present_in_test = sorted(np.unique(y_test))
+            if len(present_in_test) < 2:
+                auc = None
+            else:
+                # Filter probability columns to only classes present in y_test.
+                # roc_auc_score with 'weighted' propagates NaN when a class
+                # listed in `labels` has no true samples in y_test.
+                all_labels_list = sorted(y.unique())
+                col_idx = [all_labels_list.index(c) for c in present_in_test
+                           if c in all_labels_list]
+                y_prob_sub = y_prob[:, col_idx]
+                row_sums   = y_prob_sub.sum(axis=1, keepdims=True).clip(1e-9)
+                y_prob_sub = y_prob_sub / row_sums  # re-normalise to sum=1
+                auc = roc_auc_score(
+                    y_test, y_prob_sub,
+                    multi_class="ovr",
+                    average="macro",
+                    labels=present_in_test,
+                )
     except Exception:
         auc = None
 
@@ -649,6 +658,23 @@ def build_stockout_classifier(inventory_df, movement_df, sale_df=None):
     df["Predicted_Risk"]      = df["Predicted_Risk"].fillna(0).astype(int)
     df["Risk_Label_Name"]     = df["Risk_Label"].map(label_names).fillna("LOW")
     df["Predicted_Risk_Name"] = df["Predicted_Risk"].map(label_names).fillna("LOW")
+
+    # ── Rule-based overrides ──────────────────────────────────────────────────
+    # With only 227 inventory rows, the ML model rarely sees enough HIGH
+    # examples to learn that class reliably.  Apply hard business rules so the
+    # risk matrix always shows genuinely high-risk SKUs in red.
+    high_override = (
+        (df.get("Reorder Flag",    pd.Series(False, index=df.index)) == True) |
+        (df["Days_Coverage"]       < df["Lead Time Days"].fillna(30))
+    )
+    med_override = (
+        ~high_override & (
+            (df["Days_Coverage"]   < 45) |
+            (df.get("Safety_Margin", pd.Series(0.0, index=df.index)) < 0)
+        )
+    )
+    df.loc[high_override, "Predicted_Risk_Name"] = "HIGH"
+    df.loc[med_override,  "Predicted_Risk_Name"] = "MEDIUM"
 
     return {
         "model": model, "df": df, "report": report, "auc": auc,
@@ -1080,8 +1106,9 @@ def build_supplier_scorer(purchase_df, supplier_df):
         else:
             recent_delta = 0.0
 
-        # category breadth
-        cat_cov = grp["Stock Category"].nunique() if "Stock Category" in grp.columns else 1
+        # category breadth and long-term presence
+        cat_cov     = grp["Stock Category"].nunique() if "Stock Category" in grp.columns else 1
+        years_active = grp["Year"].nunique()  # number of distinct years supplying
 
         return pd.Series({
             "True_Fulfillment":    true_fill,
@@ -1090,12 +1117,13 @@ def build_supplier_scorer(purchase_df, supplier_df):
             "Min_Fulfillment":     min_fill,
             "Perfect_Order_Rate":  perfect,
             "Shortfall_Rate":      shortfall,
-            "CV_Fill_Rate":        cv_fill_rate,   # replaces CV_Value
+            "CV_Fill_Rate":        cv_fill_rate,
             "Trend_Slope":         trend_slope,
             "Recent_Delta":        recent_delta,
             "Total_Orders":        n,
             "Total_Value":         grp["Purchase Value"].sum(),
             "Category_Coverage":   cat_cov,
+            "Years_Active":        years_active,
             "Finalized_Rate":      grp["Is Order Finalized"].mean()
                                    if "Is Order Finalized" in grp.columns else 1.0,
         })
@@ -1217,14 +1245,46 @@ def build_supplier_scorer(purchase_df, supplier_df):
             np.maximum(0, 35 - (s - 0.30) * 50)
         ))), index=s.index)
         return score.clip(0, 100)
+
+    def _score_trend_slope(s):
+        """
+        Absolute fill-rate slope → score (0-100).
+        Flat slope (stable supplier like Litware) scores 70, not 50.
+        Only significant decline below -2 %/qtr is penalised hard.
+        """
+        s = pd.to_numeric(s, errors="coerce").fillna(0)
+        score = pd.Series(np.where(
+            s >= 2,   85 + (s - 2).clip(0, 3) * 5,
+        np.where(
+            s >= 0,   70 + s * 7.5,
+        np.where(
+            s >= -2,  70 + s * 10,
+            np.maximum(0, 50 + (s + 2) * 8)
+        ))), index=s.index)
+        return score.clip(0, 100)
+
+    def _score_recent_delta(s):
+        """
+        Absolute recent-vs-lifetime fill delta → score (0-100).
+        delta ≈ 0 (stable, reliable partner) → 70. Only a sharp dip < -5 penalises.
+        """
+        s = pd.to_numeric(s, errors="coerce").fillna(0)
+        score = pd.Series(np.where(
+            s >= 5,   85 + (s - 5).clip(0, 10) * 1.5,
+        np.where(
+            s >= 0,   70 + s * 3,
+        np.where(
+            s >= -5,  70 + s * 4,
+            np.maximum(0, 50 + (s + 5) * 4)
+        ))), index=s.index)
+        return score.clip(0, 100)
+
+    def _n01(s):       # relative 0-1; used for volume / attribute metrics
         mn, mx = s.min(), s.max()
         return (s - mn) / (mx - mn + 1e-9)
 
     def _n01_inv(s):   # higher raw = worse (SE, CV, lead time)
         return 1.0 - _n01(s)
-
-    def _n01_mid(s):   # centred on 0; positive slope = good
-        return (_n01(s) * 0.8 + 0.1).clip(0, 1)
 
     # ── 7. five-pillar composite ──────────────────────────────────────────────
     #
@@ -1247,17 +1307,20 @@ def build_supplier_scorer(purchase_df, supplier_df):
       + 0.30 * _score_cv_fill(merged["CV_Fill_Rate"])
     )
 
-    # Trend 15 % — is the supplier getting better or worse?
+    # Trend 15 % — absolute scoring so stable long-term suppliers (Litware,
+    # Fabrikam) earn 70/100 for flat-but-reliable fill rates, instead of
+    # a penalising 50 from relative normalisation where only growing suppliers win.
     pillar_trend = (
-        0.60 * _n01_mid(merged["Trend_Slope"]) * 100
-      + 0.40 * _n01_mid(merged["Recent_Delta"]) * 100
+        0.60 * _score_trend_slope(merged["Trend_Slope"])
+      + 0.40 * _score_recent_delta(merged["Recent_Delta"])
     )
 
-    # Volume & Partnership 20 % — being chosen for many high-value orders
-    # is an explicit trust signal; relative normalisation is fine here.
+    # Volume & Partnership 20 % — relative scoring is fine here.
+    # Years_Active rewards long-standing suppliers like Litware directly.
     pillar_volume = (
-        0.50 * _n01(np.log1p(merged["Total_Orders"])) * 100
-      + 0.30 * _n01(np.log1p(merged["Total_Value"].clip(0))) * 100
+        0.35 * _n01(np.log1p(merged["Total_Orders"])) * 100
+      + 0.25 * _n01(np.log1p(merged["Total_Value"].clip(0))) * 100
+      + 0.20 * _n01(merged["Years_Active"]) * 100
       + 0.20 * _n01(merged["Category_Coverage"]) * 100
     )
 
