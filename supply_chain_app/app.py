@@ -575,20 +575,20 @@ elif page == "👥 Customer Intelligence":
                                f"{sil_score:.3f}" if sil_score is not None else "N/A")
         with sk3: metric_card("Total Customers",  f"{_total_cust:,}")
 
-           # Merge churn predictions into segmentation so counts are consistent
-           churn_info_local = _churn(sale)
-           churn_rfm = churn_info_local["rfm"][["Customer Key", "Churn_Pred"]]
-           rfm_seg = rfm_seg.merge(churn_rfm, on="Customer Key", how="left")
-           rfm_seg["Churn_Pred"] = rfm_seg["Churn_Pred"].fillna(0).astype(int)
+        # Merge churn predictions into segmentation so counts are consistent
+        churn_info_local = _churn(sale)
+        churn_rfm = churn_info_local["rfm"][["Customer Key", "Churn_Pred"]]
+        rfm_seg = rfm_seg.merge(churn_rfm, on="Customer Key", how="left")
+        rfm_seg["Churn_Pred"] = rfm_seg["Churn_Pred"].fillna(0).astype(int)
 
-           seg_sum = (rfm_seg.groupby("Segment Name")
-                    .agg(Count=("Customer Key","count"),
+        seg_sum = (rfm_seg.groupby("Segment Name")
+                   .agg(Count=("Customer Key","count"),
                         Churned=("Churn_Pred","sum"),
                         Avg_Recency=("Recency","mean"),
                         Avg_Frequency=("Frequency","mean"),
                         Avg_Monetary=("Monetary","mean"))
-                    .reset_index()
-                    .sort_values("Avg_Monetary", ascending=False))
+                   .reset_index()
+                   .sort_values("Avg_Monetary", ascending=False))
 
         # 3D scatter full-width
         st.plotly_chart(_c(ch.rfm_3d(rfm_seg), 340),
