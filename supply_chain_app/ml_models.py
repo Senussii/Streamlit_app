@@ -630,25 +630,25 @@ def build_stockout_classifier(inventory_df, movement_df, sale_df=None):
         if np.any(np.isnan(y_prob)) or np.any(np.isinf(y_prob)):
             auc = None
         else:
+            # Robust multiclass AUC calculation: binarize true labels and
+            # evaluate only on classes present in the test split. This
+            # avoids NaN results when some classes are absent in y_test.
+            from sklearn.preprocessing import label_binarize
+            all_labels = sorted(y.unique())
             present_in_test = sorted(np.unique(y_test))
             if len(present_in_test) < 2:
                 auc = None
             else:
-                # Filter probability columns to only classes present in y_test.
-                # roc_auc_score with 'weighted' propagates NaN when a class
-                # listed in `labels` has no true samples in y_test.
-                all_labels_list = sorted(y.unique())
-                col_idx = [all_labels_list.index(c) for c in present_in_test
-                           if c in all_labels_list]
+                # binarize y_test across the full label set then select
+                # only the columns for labels present in the test fold.
+                y_test_bin = label_binarize(y_test, classes=all_labels)
+                col_idx = [all_labels.index(c) for c in present_in_test if c in all_labels]
                 y_prob_sub = y_prob[:, col_idx]
-                row_sums   = y_prob_sub.sum(axis=1, keepdims=True).clip(1e-9)
-                y_prob_sub = y_prob_sub / row_sums  # re-normalise to sum=1
-                auc = roc_auc_score(
-                    y_test, y_prob_sub,
-                    multi_class="ovr",
-                    average="macro",
-                    labels=present_in_test,
-                )
+                y_test_bin_sub = y_test_bin[:, col_idx]
+                try:
+                    auc = float(roc_auc_score(y_test_bin_sub, y_prob_sub, average="macro"))
+                except Exception:
+                    auc = None
     except Exception:
         auc = None
 
@@ -1441,6 +1441,17 @@ def build_anomaly_detector(txn_df):
     """
     df = txn_df.copy()
     df = df.dropna(subset=["Total Including Tax", "Tax Amount", "Outstanding Balance"])
+
+    # If there is no valid transaction data, return an empty-but-safe
+    # structure so the UI can render without error instead of hanging.
+    if df.empty:
+        safe = txn_df.copy()
+        safe["Anomaly_Score"] = 0.0
+        safe["Is_Anomaly"] = False
+        return {
+            "model": None, "df": safe,
+            "anomaly_count": 0, "anomaly_rate": 0.0,
+        }
 
     num_cols = ["Total Excluding Tax", "Tax Amount",
                 "Total Including Tax", "Outstanding Balance"]

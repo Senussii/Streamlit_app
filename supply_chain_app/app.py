@@ -242,17 +242,22 @@ if page == "🏠 Executive Dashboard":
     total_rev    = sale["Total Excluding Tax"].sum()
     total_profit = sale["Profit"].sum()
     margin_pct   = total_profit / total_rev * 100 if total_rev else 0
-    # Count unique orders (invoices).  In WWI, a customer can have multiple
-    # invoices on the same day to different ship-to cities, so
-    # (Customer Key, Invoice Date Key, City Key) best approximates unique invoices.
-    if "Order Key" in sale.columns:
-        total_orders = int(sale["Order Key"].nunique())
-    elif "Invoice Number" in sale.columns:
-        total_orders = int(sale["Invoice Number"].nunique())
-    else:
-        total_orders = int(sale.groupby(
-            ["Customer Key", "Invoice Date Key", "City Key"]
-        ).ngroups)
+    # Count unique orders (invoices). Prefer explicit WWI order id when present
+    # (this is the authoritative distinct order count reported in the facts).
+    order_id_candidates = [
+        "WWI Order ID", "WWI Order Id", "WWI Order", "Order Key",
+        "Order ID", "Invoice Number",
+    ]
+    total_orders = None
+    for c in order_id_candidates:
+        if c in sale.columns:
+            try:
+                total_orders = int(sale[c].nunique())
+            except Exception:
+                total_orders = int(sale[c].astype(str).nunique())
+            break
+    if total_orders is None:
+        total_orders = int(sale.groupby(["Customer Key", "Invoice Date Key", "City Key"]).ngroups)
     total_skus   = sale["Stock Item Key"].nunique()
     avg_order_v  = sale["Total Including Tax"].mean()
 
@@ -297,9 +302,9 @@ if page == "🏠 Executive Dashboard":
             coloraxis_colorbar=dict(tickfont=dict(color="#E0E0E0")),
             title=dict(text="Revenue by Sales Territory", font=dict(color="#00D4FF")))
 
-        top_cust = (sale.groupby("Customer")
+           top_cust = (sale.groupby("Customer")
                     .agg(Revenue=("Total Excluding Tax","sum"),
-                         Profit=("Profit","sum"))
+                        Profit=("Profit","sum"))
                     .reset_index()
                     .sort_values("Revenue", ascending=False).head(10)
                     .reset_index(drop=True))
@@ -313,7 +318,7 @@ if page == "🏠 Executive Dashboard":
             st.caption("🌟 Top 10 Customers by Revenue")
             st.dataframe(
                 top_cust.style.format({"Revenue": "${:,.0f}", "Profit": "${:,.0f}"}),
-                use_container_width=True, height=260,
+                use_container_width=True, height=320,
                 hide_index=True,
                 column_config={
                     "Rank":     st.column_config.TextColumn("Rank",     width="small"),
@@ -402,7 +407,7 @@ elif page == "📈 Demand Forecasting":
         st.dataframe(
             fc_show,
             use_container_width=True,
-            height=230,
+            height=340,
             hide_index=True,
             column_config={
                 "Category":      st.column_config.TextColumn("Category",       width="large"),
@@ -467,19 +472,19 @@ elif page == "📦 Inventory Risk":
 
     # Row 3 — HIGH Risk table full-width + Classification Report below
     st.caption("⚠️ HIGH Risk SKUs — Immediate Reorder Needed")
-    high_df = (inv_df[inv_df["Predicted_Risk_Name"] == "HIGH"]
-               [["Stock Item","Stock Category","Quantity On Hand",
-                 "Reorder Level","Target Stock Level","Monthly_Velocity",
-                 "Days_Coverage","Stock Value","Lead Time Days"]]
-               .sort_values("Quantity On Hand"))
-    st.dataframe(high_df.style.format({
+        high_df = (inv_df[inv_df["Predicted_Risk_Name"] == "HIGH"]
+                             [["Stock Item","Stock Category","Quantity On Hand",
+                                 "Reorder Level","Target Stock Level","Monthly_Velocity",
+                                 "Days_Coverage","Stock Value","Lead Time Days"]]
+                             .sort_values("Quantity On Hand"))
+        st.dataframe(high_df.style.format({
         "Quantity On Hand":   "{:,.0f}",
         "Reorder Level":      "{:,.0f}",
         "Target Stock Level": "{:,.0f}",
         "Monthly_Velocity":   "{:,.1f}",
         "Days_Coverage":      "{:,.0f}",
         "Stock Value":        "${:,.2f}",
-    }), use_container_width=True, height=210, hide_index=True)
+        }), use_container_width=True, height=300, hide_index=True)
 
     if inv_info["report"]:
         with st.expander("📋 Classification Report", expanded=False):
@@ -539,7 +544,7 @@ elif page == "👥 Customer Intelligence":
             st.dataframe(at_risk.style.format({
                 "Revenue ($)": "${:,.0f}", "Churn %": "{:.1f}%",
             }).background_gradient(subset=["Churn %"], cmap="RdYlGn_r"),
-                use_container_width=True, height=280,
+                use_container_width=True, height=340,
                 hide_index=True,
                 column_config={
                     "Customer":    st.column_config.TextColumn("Customer Name", width="large"),
@@ -570,13 +575,20 @@ elif page == "👥 Customer Intelligence":
                                f"{sil_score:.3f}" if sil_score is not None else "N/A")
         with sk3: metric_card("Total Customers",  f"{_total_cust:,}")
 
-        seg_sum = (rfm_seg.groupby("Segment Name")
-                   .agg(Count=("Customer Key","count"),
+           # Merge churn predictions into segmentation so counts are consistent
+           churn_info_local = _churn(sale)
+           churn_rfm = churn_info_local["rfm"][["Customer Key", "Churn_Pred"]]
+           rfm_seg = rfm_seg.merge(churn_rfm, on="Customer Key", how="left")
+           rfm_seg["Churn_Pred"] = rfm_seg["Churn_Pred"].fillna(0).astype(int)
+
+           seg_sum = (rfm_seg.groupby("Segment Name")
+                    .agg(Count=("Customer Key","count"),
+                        Churned=("Churn_Pred","sum"),
                         Avg_Recency=("Recency","mean"),
                         Avg_Frequency=("Frequency","mean"),
                         Avg_Monetary=("Monetary","mean"))
-                   .reset_index()
-                   .sort_values("Avg_Monetary", ascending=False))
+                    .reset_index()
+                    .sort_values("Avg_Monetary", ascending=False))
 
         # 3D scatter full-width
         st.plotly_chart(_c(ch.rfm_3d(rfm_seg), 340),
@@ -588,10 +600,12 @@ elif page == "👥 Customer Intelligence":
             "Avg_Recency":   "{:.0f}",
             "Avg_Frequency": "{:.0f}",
             "Avg_Monetary":  "${:,.0f}",
-        }), use_container_width=True, height=215, hide_index=True,
+            "Churned":       "{:,.0f}",
+        }), use_container_width=True, height=300, hide_index=True,
         column_config={
             "Segment Name":  st.column_config.TextColumn("Segment",        width="large"),
             "Count":         st.column_config.NumberColumn("Customers",     width="medium"),
+            "Churned":       st.column_config.NumberColumn("Churned",       width="small"),
             "Avg_Recency":   st.column_config.NumberColumn("Avg Recency (d)", width="medium"),
             "Avg_Frequency": st.column_config.NumberColumn("Avg Orders",    width="medium"),
             "Avg_Monetary":  st.column_config.TextColumn("Avg Revenue",     width="medium"),
