@@ -302,9 +302,9 @@ if page == "🏠 Executive Dashboard":
             coloraxis_colorbar=dict(tickfont=dict(color="#E0E0E0")),
             title=dict(text="Revenue by Sales Territory", font=dict(color="#00D4FF")))
 
-           top_cust = (sale.groupby("Customer")
+        top_cust = (sale.groupby("Customer")
                     .agg(Revenue=("Total Excluding Tax","sum"),
-                        Profit=("Profit","sum"))
+                         Profit=("Profit","sum"))
                     .reset_index()
                     .sort_values("Revenue", ascending=False).head(10)
                     .reset_index(drop=True))
