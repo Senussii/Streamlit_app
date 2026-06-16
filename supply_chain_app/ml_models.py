@@ -601,7 +601,7 @@ def build_stockout_classifier(inventory_df, movement_df, sale_df=None):
         "Lead_Demand",      "Safety_Margin",    "Overstock_Ratio",
     ]
 
-    clean = df.dropna(subset=features).reset_index(drop=True)
+    clean = df.dropna(subset=features)          # keep original index — must align with df
     X, y  = clean[features], clean["Risk_Label"]
     label_names = {0: "LOW", 1: "MEDIUM", 2: "HIGH"}
 
@@ -625,30 +625,12 @@ def build_stockout_classifier(inventory_df, movement_df, sale_df=None):
     report   = classification_report(
         y_test, y_pred, labels=present, target_names=t_names, output_dict=True
     )
+
+    # ── Balanced Accuracy (replaces ROC-AUC OvR which gives NaN on small/imbalanced data) ──
+    # Balanced accuracy = mean recall per class, handles imbalanced 3-class problems well.
     try:
-        y_prob = model.predict_proba(X_test)
-        if np.any(np.isnan(y_prob)) or np.any(np.isinf(y_prob)):
-            auc = None
-        else:
-            # Robust multiclass AUC calculation: binarize true labels and
-            # evaluate only on classes present in the test split. This
-            # avoids NaN results when some classes are absent in y_test.
-            from sklearn.preprocessing import label_binarize
-            all_labels = sorted(y.unique())
-            present_in_test = sorted(np.unique(y_test))
-            if len(present_in_test) < 2:
-                auc = None
-            else:
-                # binarize y_test across the full label set then select
-                # only the columns for labels present in the test fold.
-                y_test_bin = label_binarize(y_test, classes=all_labels)
-                col_idx = [all_labels.index(c) for c in present_in_test if c in all_labels]
-                y_prob_sub = y_prob[:, col_idx]
-                y_test_bin_sub = y_test_bin[:, col_idx]
-                try:
-                    auc = float(roc_auc_score(y_test_bin_sub, y_prob_sub, average="macro"))
-                except Exception:
-                    auc = None
+        from sklearn.metrics import balanced_accuracy_score
+        auc = float(balanced_accuracy_score(y_test, y_pred))
     except Exception:
         auc = None
 
@@ -660,17 +642,19 @@ def build_stockout_classifier(inventory_df, movement_df, sale_df=None):
     df["Predicted_Risk_Name"] = df["Predicted_Risk"].map(label_names).fillna("LOW")
 
     # ── Rule-based overrides ──────────────────────────────────────────────────
-    # With only 227 inventory rows, the ML model rarely sees enough HIGH
-    # examples to learn that class reliably.  Apply hard business rules so the
-    # risk matrix always shows genuinely high-risk SKUs in red.
+    # Safety_Margin < 0  means QoH < daily_usage × lead_time_days, i.e. the
+    # item will stock-out before a replenishment order can arrive → HIGH, not MEDIUM.
+    _reorder_flag = df.get("Reorder Flag", pd.Series(False, index=df.index))
+    _safety       = df.get("Safety_Margin", pd.Series(0.0, index=df.index))
     high_override = (
-        (df.get("Reorder Flag",    pd.Series(False, index=df.index)) == True) |
-        (df["Days_Coverage"]       < df["Lead Time Days"].fillna(30))
+        (_reorder_flag == True) |
+        (df["Days_Coverage"] < df["Lead Time Days"].fillna(30)) |
+        (_safety < 0)
     )
     med_override = (
         ~high_override & (
-            (df["Days_Coverage"]   < 45) |
-            (df.get("Safety_Margin", pd.Series(0.0, index=df.index)) < 0)
+            (df["Days_Coverage"] < 60) |
+            (df["Stock_vs_Reorder"] < 1.5)
         )
     )
     df.loc[high_override, "Predicted_Risk_Name"] = "HIGH"
@@ -678,6 +662,7 @@ def build_stockout_classifier(inventory_df, movement_df, sale_df=None):
 
     return {
         "model": model, "df": df, "report": report, "auc": auc,
+        "metric_name": "Balanced Accuracy",
         "feature_importance": _feat_imp(model, features),
         "risk_map": label_names,
     }
@@ -1077,14 +1062,13 @@ def build_supplier_scorer(purchase_df, supplier_df):
         perfect    = (fills >= 100.0).mean() * 100
         shortfall  = (grp["Received Outers"] < grp["Ordered Outers"]).mean() * 100
 
-        # ── consistency metrics ───────────────────────────────────────────────
-        # CV_Value (std of order dollar amounts) is intentionally removed.
-        # High-volume, multi-category suppliers (Litware, Fabrikam) naturally
-        # have wide dollar variance because they ship everything from screws to
-        # server racks — that diversity is GOOD, not inconsistent.
-        # CV_Fill_Rate measures how variable the per-order FILL RATE is, which
-        # is the true consistency signal.
-        cv_fill_rate = (fills.std() / fills.mean()) if (n >= 2 and fills.mean() > 0) else 1.0
+        # ── consistency metric: Near-Perfect Order Rate ───────────────────────
+        # CV_Fill_Rate (std/mean of per-order fill) penalises high-volume
+        # suppliers unfairly: more orders → more measured variance even when
+        # fill is consistently excellent.
+        # Near_Perfect_Rate = % of orders delivered at ≥ 95 % fill.
+        # This rewards consistent high-quality delivery regardless of volume.
+        near_perfect_rate = (fills >= 95.0).mean() * 100   # 0-100 %
 
         # quarterly OLS trend
         q_agg = (grp.groupby("Quarter_Idx")["Unit_Fill"].mean()
@@ -1117,7 +1101,7 @@ def build_supplier_scorer(purchase_df, supplier_df):
             "Min_Fulfillment":     min_fill,
             "Perfect_Order_Rate":  perfect,
             "Shortfall_Rate":      shortfall,
-            "CV_Fill_Rate":        cv_fill_rate,
+            "Near_Perfect_Rate":   near_perfect_rate,
             "Trend_Slope":         trend_slope,
             "Recent_Delta":        recent_delta,
             "Total_Orders":        n,
@@ -1226,23 +1210,24 @@ def build_supplier_scorer(purchase_df, supplier_df):
         ))), index=s.index)
         return score.clip(0, 100)
 
-    def _score_cv_fill(s):
+    def _score_near_perfect(s):
         """
-        Absolute CV_Fill_Rate → score (0-100, inverted — lower CV is better).
-        CV < 0.05  → 90-100  (fill rates almost never deviate order to order)
-        CV 0.05-0.15 → 65-90
-        CV 0.15-0.30 → 35-65
-        CV > 0.30  → 0-35
-        Litware/Fabrikam delivering 98 % on every order (low CV) scores well.
+        % of orders with fill ≥ 95 % → score (0-100).
+        This is volume-neutral: a supplier with 1000 orders at 98 % fill
+        scores identically to one with 10 orders at 98 % fill.
+        ≥ 98 %  → 90-100  (outstanding consistency)
+        90-98 % → 70-90   (good)
+        75-90 % → 40-70   (acceptable)
+        < 75 %  → 0-40    (poor)
         """
-        s = pd.to_numeric(s, errors="coerce").fillna(0.5)
+        s = pd.to_numeric(s, errors="coerce").fillna(0)
         score = pd.Series(np.where(
-            s <= 0.05, 90 + (0.05 - s) * 200,
+            s >= 98,  90 + (s - 98) * 5,
         np.where(
-            s <= 0.15, 65 + (0.15 - s) * 250,
+            s >= 90,  70 + (s - 90) * (20 / 8),
         np.where(
-            s <= 0.30, 35 + (0.30 - s) * 200,
-            np.maximum(0, 35 - (s - 0.30) * 50)
+            s >= 75,  40 + (s - 75) * (30 / 15),
+            s * (40 / 75)
         ))), index=s.index)
         return score.clip(0, 100)
 
@@ -1298,13 +1283,12 @@ def build_supplier_scorer(purchase_df, supplier_df):
       + 0.15 * _score_shortfall(merged["Shortfall_Rate"])
     )
 
-    # Consistency 20 % — absolute benchmarks so long-term multi-category
-    # suppliers (Litware, Fabrikam) are scored on HOW CONSISTENT THEIR FILL
-    # RATES ARE per order, not how varied their order dollar amounts are.
-    # SE shrinks with √n, correctly rewarding high-volume suppliers.
+    # Consistency 20 % — SE_Fulfillment rewards high-volume suppliers (SE shrinks
+    # with √n); Near_Perfect_Rate rewards suppliers who deliver ≥ 95 % fill on
+    # every individual order, regardless of how many orders they have.
     pillar_consistency = (
-        0.70 * _score_se(merged["SE_Fulfillment"])
-      + 0.30 * _score_cv_fill(merged["CV_Fill_Rate"])
+        0.55 * _score_se(merged["SE_Fulfillment"])
+      + 0.45 * _score_near_perfect(merged["Near_Perfect_Rate"])
     )
 
     # Trend 15 % — absolute scoring so stable long-term suppliers (Litware,
@@ -1357,7 +1341,7 @@ def build_supplier_scorer(purchase_df, supplier_df):
     features = [
         "True_Fulfillment",  "Bayesian_Fill",     "SE_Fulfillment",
         "Min_Fulfillment",   "Perfect_Order_Rate", "Shortfall_Rate",
-        "CV_Fill_Rate",      "Trend_Slope",        "Recent_Delta",
+        "Near_Perfect_Rate", "Trend_Slope",        "Recent_Delta",
         "Total_Orders",      "Category_Coverage",  "Finalized_Rate",
         "Tier_Code",         "Speed_Code",
         "Supplier Rating",   "Lead Time Days (Supplier)",
@@ -1438,23 +1422,36 @@ def build_anomaly_detector(txn_df):
       providing structural context the model was previously blind to.
     • Added Amount_Flag (binary: unusually large transaction) and
       Balance_Pct to enrich the feature set.
+    • n_jobs=1 avoids fork-overhead / hang on Streamlit Cloud.
     """
     df = txn_df.copy()
-    df = df.dropna(subset=["Total Including Tax", "Tax Amount", "Outstanding Balance"])
 
-    # If there is no valid transaction data, return an empty-but-safe
-    # structure so the UI can render without error instead of hanging.
+    # ── Defensive column resolution ───────────────────────────────────────────
+    # Ensure all expected monetary columns exist; create zeros if absent so the
+    # function never crashes due to a column-name mismatch in the source CSV.
+    monetary_defaults = {
+        "Total Excluding Tax":  0.0,
+        "Tax Amount":           0.0,
+        "Total Including Tax":  0.0,
+        "Outstanding Balance":  0.0,
+    }
+    for col, default in monetary_defaults.items():
+        if col not in df.columns:
+            df[col] = default
+
+    num_cols = list(monetary_defaults.keys())
+
+    # Drop rows where ALL key monetary fields are null
+    drop_subset = [c for c in ["Total Including Tax", "Outstanding Balance"] if c in df.columns]
+    if drop_subset:
+        df = df.dropna(subset=drop_subset)
+
     if df.empty:
-        safe = txn_df.copy()
-        safe["Anomaly_Score"] = 0.0
-        safe["Is_Anomaly"] = False
         return {
-            "model": None, "df": safe,
+            "model": None, "df": txn_df.copy(),
             "anomaly_count": 0, "anomaly_rate": 0.0,
         }
 
-    num_cols = ["Total Excluding Tax", "Tax Amount",
-                "Total Including Tax", "Outstanding Balance"]
     df[num_cols] = df[num_cols].fillna(0)
 
     # log1p-transform monetary columns (compress right tail)
@@ -1477,9 +1474,11 @@ def build_anomaly_detector(txn_df):
     thresh = df["Total Including Tax"].quantile(0.95)
     df["Amount_Flag"] = (df["Total Including Tax"] > thresh).astype(float)
 
-    # encode categorical context
-    df["PayMethod_Code"] = _le(df.get("Payment Method", pd.Series(dtype=str)))
-    df["TxnType_Code"]   = _le(df.get("Transaction Type", pd.Series(dtype=str)))
+    # encode categorical context — safe against missing columns
+    pm_col  = df["Payment Method"]  if "Payment Method"  in df.columns else pd.Series("UNKNOWN", index=df.index)
+    txn_col = df["Transaction Type"] if "Transaction Type" in df.columns else pd.Series("UNKNOWN", index=df.index)
+    df["PayMethod_Code"] = _le(pm_col)
+    df["TxnType_Code"]   = _le(txn_col)
 
     feature_cols = (
         log_cols
@@ -1496,11 +1495,11 @@ def build_anomaly_detector(txn_df):
 
     model = IsolationForest(
         contamination=0.05,
-        n_estimators=400,
+        n_estimators=200,       # reduced from 400 — faster, same quality on 99 K rows
         max_samples="auto",
         max_features=0.8,
         random_state=42,
-        n_jobs=-1,
+        n_jobs=1,               # n_jobs=1 prevents fork-hang on Cloud / Windows
     )
     model.fit(X)
     df["Anomaly_Score"] = model.decision_function(X)

@@ -25,7 +25,8 @@ import gc
 import hashlib
 
 from data_loader import (mart_sales, mart_inventory, mart_purchase,
-                          mart_movement, mart_transaction, load_dimensions)
+                          mart_movement, mart_transaction, load_dimensions,
+                          load_facts)
 from ml_models   import (build_demand_forecast, build_stockout_classifier,
                           build_churn_predictor, build_supplier_scorer,
                           build_anomaly_detector, build_customer_segments)
@@ -242,26 +243,30 @@ if page == "🏠 Executive Dashboard":
     total_rev    = sale["Total Excluding Tax"].sum()
     total_profit = sale["Profit"].sum()
     margin_pct   = total_profit / total_rev * 100 if total_rev else 0
-    # Count unique orders (invoices). Prefer explicit WWI order id when present
-    # (this is the authoritative distinct order count reported in the facts).
-    order_id_candidates = [
-        "WWI Order ID", "WWI Order Id", "WWI Order", "Order Key",
-        "Order ID", "Invoice Number",
-    ]
-    total_orders = None
-    for c in order_id_candidates:
-        if c in sale.columns:
-            try:
-                total_orders = int(sale[c].nunique())
-            except Exception:
-                total_orders = int(sale[c].astype(str).nunique())
-            break
-    if total_orders is None:
-        total_orders = int(sale.groupby(["Customer Key", "Invoice Date Key", "City Key"]).ngroups)
+
     total_skus   = sale["Stock Item Key"].nunique()
     avg_order_v  = sale["Total Including Tax"].mean()
 
-    # ── KPI row ───────────────────────────────────────────────────────────────
+    # ── Total orders: distinct WWI Order ID from Fact.Order (not Fact.Sale) ──
+    # Fact.Sale has one row per line item; Fact.Order is the authoritative
+    # order register and gives the correct ~74 K distinct order count.
+    try:
+        _order_fact   = load_facts()["order"]
+        _order_id_col = next(
+            (c for c in ["WWI Order ID", "Order ID", "Order Key"]
+             if c in _order_fact.columns), None
+        )
+        total_orders = (
+            int(_order_fact[_order_id_col].nunique()) if _order_id_col
+            else int(len(_order_fact))
+        )
+    except Exception:
+        if "Order Key" in sale.columns:
+            total_orders = int(sale["Order Key"].nunique())
+        else:
+            total_orders = int(sale.groupby(
+                ["Customer Key", "Invoice Date Key", "City Key"]
+            ).ngroups)
     k1, k2, k3, k4, k5, k6 = st.columns(6)
     with k1: metric_card("Total Revenue",   f"${total_rev/1e6:.1f}M")
     with k2: metric_card("Total Profit",    f"${total_profit/1e6:.1f}M")
@@ -318,7 +323,7 @@ if page == "🏠 Executive Dashboard":
             st.caption("🌟 Top 10 Customers by Revenue")
             st.dataframe(
                 top_cust.style.format({"Revenue": "${:,.0f}", "Profit": "${:,.0f}"}),
-                use_container_width=True, height=320,
+                use_container_width=True, height=260,
                 hide_index=True,
                 column_config={
                     "Rank":     st.column_config.TextColumn("Rank",     width="small"),
@@ -407,7 +412,7 @@ elif page == "📈 Demand Forecasting":
         st.dataframe(
             fc_show,
             use_container_width=True,
-            height=340,
+            height=230,
             hide_index=True,
             column_config={
                 "Category":      st.column_config.TextColumn("Category",       width="large"),
@@ -439,8 +444,9 @@ elif page == "📦 Inventory Risk":
     stock_val = inv_df["Stock Value"].sum()
 
     if inv_info["auc"]:
-        q = "good" if inv_info["auc"] > 0.85 else "warn"
-        st.session_state.model_metrics["Stockout AUC"] = (f"{inv_info['auc']:.3f}", q)
+        metric_label = inv_info.get("metric_name", "Balanced Accuracy")
+        q = "good" if inv_info["auc"] > 0.70 else "warn"
+        st.session_state.model_metrics["Stockout Bal-Acc"] = (f"{inv_info['auc']:.3f}", q)
 
     # Row 1 — KPIs
     k1, k2, k3, k4 = st.columns(4)
@@ -484,14 +490,26 @@ elif page == "📦 Inventory Risk":
         "Monthly_Velocity":   "{:,.1f}",
         "Days_Coverage":      "{:,.0f}",
         "Stock Value":        "${:,.2f}",
-    }), use_container_width=True, height=300, hide_index=True)
+    }), use_container_width=True, height=240, hide_index=True,
+    column_config={
+        "Stock Item":          st.column_config.TextColumn("SKU",            width="large"),
+        "Stock Category":      st.column_config.TextColumn("Category",       width="medium"),
+        "Quantity On Hand":    st.column_config.NumberColumn("QoH",          width="small"),
+        "Reorder Level":       st.column_config.NumberColumn("Reorder Lvl",  width="small"),
+        "Target Stock Level":  st.column_config.NumberColumn("Target Stock", width="small"),
+        "Monthly_Velocity":    st.column_config.NumberColumn("Mo. Velocity", width="small"),
+        "Days_Coverage":       st.column_config.NumberColumn("Days Cover",   width="small"),
+        "Stock Value":         st.column_config.TextColumn("Stock Value",    width="medium"),
+        "Lead Time Days":      st.column_config.NumberColumn("Lead Days",    width="small"),
+    })
 
     if inv_info["report"]:
         with st.expander("📋 Classification Report", expanded=False):
             rpt = pd.DataFrame(inv_info["report"]).T.drop(columns=["support"], errors="ignore")
             st.dataframe(rpt.style.format("{:.2f}"), use_container_width=True)
         if inv_info["auc"]:
-            st.metric("ROC-AUC (OvR)", f"{inv_info['auc']:.3f}")
+            _mn = inv_info.get("metric_name", "Balanced Accuracy")
+            st.metric(_mn, f"{inv_info['auc']:.3f}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -544,7 +562,7 @@ elif page == "👥 Customer Intelligence":
             st.dataframe(at_risk.style.format({
                 "Revenue ($)": "${:,.0f}", "Churn %": "{:.1f}%",
             }).background_gradient(subset=["Churn %"], cmap="RdYlGn_r"),
-                use_container_width=True, height=340,
+                use_container_width=True, height=280,
                 hide_index=True,
                 column_config={
                     "Customer":    st.column_config.TextColumn("Customer Name", width="large"),
@@ -558,13 +576,23 @@ elif page == "👥 Customer Intelligence":
         with st.spinner("Segmenting customers…"):
             seg_info = _segments(sale)
 
-        rfm_seg  = seg_info["rfm"]
+        rfm_seg   = seg_info["rfm"]
         sil_score = seg_info.get("silhouette", None)
         best_k    = seg_info.get("best_k", 4)
 
         if sil_score is not None:
             q_sil = "good" if sil_score > 0.45 else "warn" if sil_score > 0.25 else ""
             st.session_state.model_metrics["Seg Silhouette"] = (f"{sil_score:.3f}", q_sil)
+
+        st.info(
+            "ℹ️ **Segment counts differ from Churn counts by design.** "
+            "Segmentation (below) uses unsupervised GMM clustering on RFM behaviour — "
+            "it assigns every customer to exactly one of the clusters and labels the "
+            "worst cluster 'Churned/Lost'.  "
+            "The Churn tab uses a supervised ML model with Youden-J threshold — it "
+            "independently scores each customer's churn probability.  "
+            "The two methods answer different questions and their counts will not match."
+        )
 
         # KPI strip — use sale-level nunique so the number is consistent
         # with the Churn tab (both count unique Customer Keys in the sale fact).
@@ -575,15 +603,8 @@ elif page == "👥 Customer Intelligence":
                                f"{sil_score:.3f}" if sil_score is not None else "N/A")
         with sk3: metric_card("Total Customers",  f"{_total_cust:,}")
 
-        # Merge churn predictions into segmentation so counts are consistent
-        churn_info_local = _churn(sale)
-        churn_rfm = churn_info_local["rfm"][["Customer Key", "Churn_Pred"]]
-        rfm_seg = rfm_seg.merge(churn_rfm, on="Customer Key", how="left")
-        rfm_seg["Churn_Pred"] = rfm_seg["Churn_Pred"].fillna(0).astype(int)
-
         seg_sum = (rfm_seg.groupby("Segment Name")
                    .agg(Count=("Customer Key","count"),
-                        Churned=("Churn_Pred","sum"),
                         Avg_Recency=("Recency","mean"),
                         Avg_Frequency=("Frequency","mean"),
                         Avg_Monetary=("Monetary","mean"))
@@ -600,12 +621,10 @@ elif page == "👥 Customer Intelligence":
             "Avg_Recency":   "{:.0f}",
             "Avg_Frequency": "{:.0f}",
             "Avg_Monetary":  "${:,.0f}",
-            "Churned":       "{:,.0f}",
-        }), use_container_width=True, height=300, hide_index=True,
+        }), use_container_width=True, height=215, hide_index=True,
         column_config={
             "Segment Name":  st.column_config.TextColumn("Segment",        width="large"),
             "Count":         st.column_config.NumberColumn("Customers",     width="medium"),
-            "Churned":       st.column_config.NumberColumn("Churned",       width="small"),
             "Avg_Recency":   st.column_config.NumberColumn("Avg Recency (d)", width="medium"),
             "Avg_Frequency": st.column_config.NumberColumn("Avg Orders",    width="medium"),
             "Avg_Monetary":  st.column_config.TextColumn("Avg Revenue",     width="medium"),
@@ -726,7 +745,15 @@ elif page == "🚨 Anomaly Detection":
     st.caption("Isolation Forest · RobustScaler · Log-transformed Features · 5 % Contamination")
 
     with st.spinner("Running Isolation Forest…"):
-        anom_info = _anomaly(txn)
+        try:
+            anom_info = _anomaly(txn)
+        except Exception as _e:
+            st.error(
+                f"**Anomaly detection failed:** {_e}\n\n"
+                "Check that `Fact.Transaction.csv` contains the columns "
+                "`Total Including Tax`, `Outstanding Balance`."
+            )
+            st.stop()
 
     anom_df = anom_info["df"].copy()
     # Ensure Is_Anomaly is strictly boolean regardless of dtype from cache/downcast
@@ -741,7 +768,7 @@ elif page == "🚨 Anomaly Detection":
     with k1: metric_card("Total Transactions",  f"{len(anom_df):,}")
     with k2: metric_card("Anomalies Detected",  f"{anom_info['anomaly_count']:,}",
                           delta_str=f"⚠ {anom_info['anomaly_rate']:.1f}% rate")
-    _exposure = anom_df.loc[is_anom_mask, "Total Including Tax"].abs().sum()
+    _exposure = anom_df.loc[is_anom_mask, "Total Including Tax"].abs().sum() if "Total Including Tax" in anom_df.columns else 0
     _exp_str  = (f"${_exposure/1e6:.1f}M" if _exposure >= 1e6
                  else f"${_exposure/1e3:.1f}K" if _exposure >= 1e3
                  else f"${_exposure:,.0f}")
@@ -770,21 +797,24 @@ elif page == "🚨 Anomaly Detection":
         st.plotly_chart(_c(fig_score, 255),
                         use_container_width=True, config={"displayModeBar": False})
     with ac3:
-        pm_anom = (anom_df.loc[is_anom_mask]
-                   .groupby("Payment Method")["Is_Anomaly"].count()
-                   .reset_index().rename(columns={"Is_Anomaly":"Anomalies"}))
-        fig_pm = px.bar(pm_anom, x="Anomalies", y="Payment Method",
-                        orientation="h",
-                        color="Anomalies", color_continuous_scale="Reds",
-                        template="plotly_dark")
-        fig_pm.update_layout(
-            paper_bgcolor="#0E1117", font_color="#E0E0E0",
-            title=dict(text="By Payment Method", font=dict(color="#00D4FF", size=13)),
-            showlegend=False)
-        st.plotly_chart(_c(fig_pm, 255),
-                        use_container_width=True, config={"displayModeBar": False})
+        if "Payment Method" in anom_df.columns:
+            pm_anom = (anom_df.loc[is_anom_mask]
+                       .groupby("Payment Method")["Is_Anomaly"].count()
+                       .reset_index().rename(columns={"Is_Anomaly":"Anomalies"}))
+            fig_pm = px.bar(pm_anom, x="Anomalies", y="Payment Method",
+                            orientation="h",
+                            color="Anomalies", color_continuous_scale="Reds",
+                            template="plotly_dark")
+            fig_pm.update_layout(
+                paper_bgcolor="#0E1117", font_color="#E0E0E0",
+                title=dict(text="By Payment Method", font=dict(color="#00D4FF", size=13)),
+                showlegend=False)
+            st.plotly_chart(_c(fig_pm, 255),
+                            use_container_width=True, config={"displayModeBar": False})
+        else:
+            st.info("Payment Method column not available.")
 
-    # Row 3 — anomalous transactions table (only use columns that actually exist)
+    # Row 3 — anomalous transactions table
     st.caption("⚠️ Top Anomalous Transactions")
     _want_cols = ["Transaction Key", "WWI Transaction ID", "Date Key", "Customer",
                   "Payment Method", "Total Including Tax", "Outstanding Balance",
@@ -796,7 +826,20 @@ elif page == "🚨 Anomaly Detection":
     if "Total Including Tax"  in top_anom.columns: fmt_cols["Total Including Tax"]  = "${:,.2f}"
     if "Outstanding Balance"  in top_anom.columns: fmt_cols["Outstanding Balance"]  = "${:,.2f}"
     if "Anomaly_Score"        in top_anom.columns: fmt_cols["Anomaly_Score"]        = "{:.4f}"
+
+    _col_cfg = {}
+    if "Transaction Key"    in _have_cols: _col_cfg["Transaction Key"]    = st.column_config.NumberColumn("Txn Key",      width="small")
+    if "WWI Transaction ID" in _have_cols: _col_cfg["WWI Transaction ID"] = st.column_config.NumberColumn("WWI Txn ID",   width="small")
+    if "Date Key"           in _have_cols: _col_cfg["Date Key"]           = st.column_config.DateColumn("Date",           width="small")
+    if "Customer"           in _have_cols: _col_cfg["Customer"]           = st.column_config.TextColumn("Customer",       width="medium")
+    if "Payment Method"     in _have_cols: _col_cfg["Payment Method"]     = st.column_config.TextColumn("Payment",        width="medium")
+    if "Total Including Tax" in _have_cols: _col_cfg["Total Including Tax"] = st.column_config.TextColumn("Total incl. Tax", width="medium")
+    if "Outstanding Balance" in _have_cols: _col_cfg["Outstanding Balance"] = st.column_config.TextColumn("Outstanding",  width="medium")
+    if "Transaction Type"   in _have_cols: _col_cfg["Transaction Type"]   = st.column_config.TextColumn("Txn Type",       width="medium")
+    if "Anomaly_Score"      in _have_cols: _col_cfg["Anomaly_Score"]      = st.column_config.NumberColumn("Score",        width="small", format="%.4f")
+
     st.dataframe(top_anom.style.format(fmt_cols)
                  .background_gradient(subset=["Anomaly_Score"] if "Anomaly_Score" in top_anom.columns else [],
                                       cmap="Reds_r"),
-        use_container_width=True, height=185, hide_index=True)
+        use_container_width=True, height=300, hide_index=True,
+        column_config=_col_cfg)

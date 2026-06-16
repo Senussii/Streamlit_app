@@ -124,16 +124,11 @@ def inventory_risk_scatter(inv_df):
     df = inv_df.copy().dropna(subset=["Quantity On Hand", "Monthly_Velocity"])
     color_map = {"LOW": "#00C49A", "MEDIUM": "#FFD700", "HIGH": "#FF4C6E"}
     risk_col = "Predicted_Risk_Name" if "Predicted_Risk_Name" in df.columns else "Risk_Label_Name"
-    # ensure size column never contains NaN (px.scatter drops rows with
-    # NaN size). Use a small positive fallback so tiny items remain visible.
-    df = df.copy()
-    df["_Size"] = df.get("Stock Value", pd.Series(0, index=df.index)).fillna(0) + 1.0
-
     fig = px.scatter(
         df, x="Quantity On Hand", y="Monthly_Velocity",
         color=risk_col,
         color_discrete_map=color_map,
-        size="_Size", size_max=30,
+        size="Stock Value", size_max=30,
         hover_data=["Stock Item", "Stock Category", "Days_Coverage"],
         labels={"Quantity On Hand": "Stock on Hand",
                 "Monthly_Velocity": "Monthly Velocity (units)"},
@@ -259,19 +254,25 @@ def feat_importance_chart(feat_imp, title="Feature Importance"):
 
 # ── Churn probability distribution ───────────────────────────────────────────
 def churn_dist(rfm_df):
+    """
+    Distribution of churn probabilities split by MODEL PREDICTION (Churn_Pred),
+    not the training label (Churned).  This ensures the chart matches the
+    At-Risk / Low-Risk KPI numbers shown above it.
+    Note: Segment Summary uses unsupervised clustering — those counts are
+    independent and will naturally differ.
+    """
+    active  = rfm_df[rfm_df["Churn_Pred"] == 0]["Churn_Prob"]
+    at_risk = rfm_df[rfm_df["Churn_Pred"] == 1]["Churn_Prob"]
     fig = go.Figure()
-    # prefer model prediction label `Churn_Pred` if available; fall back
-    # to percentile-derived `Churned` label otherwise.
-    label_col = "Churn_Pred" if "Churn_Pred" in rfm_df.columns else "Churned"
     fig.add_trace(go.Histogram(
-        x=rfm_df[rfm_df[label_col]==0]["Churn_Prob"],
-        name="Active", marker_color="#00C49A", opacity=0.7, nbinsx=30))
+        x=active,   name=f"Predicted Active ({len(active):,})",
+        marker_color="#00C49A", opacity=0.7, nbinsx=30))
     fig.add_trace(go.Histogram(
-        x=rfm_df[rfm_df[label_col]==1]["Churn_Prob"],
-        name="Churned", marker_color="#FF4C6E", opacity=0.7, nbinsx=30))
+        x=at_risk,  name=f"Predicted At-Risk ({len(at_risk):,})",
+        marker_color="#FF4C6E", opacity=0.8, nbinsx=30))
     fig.update_layout(**LAYOUT, barmode="overlay",
-                      title=dict(text="Churn Probability Distribution",
-                                 font=dict(size=15,color="#00D4FF")),
+                      title=dict(text="Churn Probability — Model Predictions",
+                                 font=dict(size=15, color="#00D4FF")),
                       xaxis_title="Churn Probability",
                       yaxis_title="Customer Count",
                       legend=dict(bgcolor="rgba(0,0,0,0)"))
