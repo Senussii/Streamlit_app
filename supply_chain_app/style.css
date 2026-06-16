@@ -322,13 +322,18 @@ h1 { margin-bottom: 0 !important; padding-bottom: 0 !important; }
 [data-testid="stDataFrame"] td       { color: #C9D1D9 !important; font-size: 0.8rem !important; }
 [data-testid="stDataFrame"] tr:hover { background: rgba(0,212,255,0.03) !important; }
 
-/* Allow horizontal scroll so every column is always reachable */
+/* Outer wrappers must NOT add their own scrollbars — AG Grid manages scrolling */
 [data-testid="stDataFrame"] > div,
 [data-testid="stDataFrameResizable"],
 .stDataFrame [data-testid="stDataFrameResizable"] > div {
-    overflow-x: auto !important;
-    overflow-y: auto !important;
+    overflow: hidden !important;
 }
+
+/* AG Grid internal viewports — single clean scroll per axis */
+[data-testid="stDataFrame"] .ag-body-viewport         { overflow-y: auto !important; overflow-x: hidden !important; }
+[data-testid="stDataFrame"] .ag-center-cols-viewport   { overflow-x: auto !important; }
+[data-testid="stDataFrame"] .ag-horizontal-left-spacer,
+[data-testid="stDataFrame"] .ag-horizontal-right-spacer { overflow: hidden !important; }
 
 /* Column resize handle — make it more visible on hover */
 [data-testid="stDataFrame"] .ag-header-cell-resize {

@@ -277,17 +277,24 @@ if page == "🏠 Executive Dashboard":
 
     tab_ov, tab_te = st.tabs(["📊 Overview", "🗺️ Territory & Customers"])
 
-    # ── Tab 1: Overview ───────────────────────────────────────────────────────
+    # ── Tab 1: Overview — 2 × 2 equal-quarter grid ───────────────────────────
     with tab_ov:
-        ca, cb, cc = st.columns([4, 3, 3])
-        with ca:
-            st.plotly_chart(_c(ch.revenue_timeline(sale), 258),
+        _H = 270   # uniform chart height for all 4 quarters
+
+        row1_left, row1_right = st.columns(2)
+        with row1_left:
+            st.plotly_chart(_c(ch.revenue_timeline(sale), _H),
                             use_container_width=True, config={"displayModeBar": False})
-        with cb:
-            st.plotly_chart(_c(ch.sales_by_category(sale), 258),
+        with row1_right:
+            st.plotly_chart(_c(ch.sales_by_category(sale), _H),
                             use_container_width=True, config={"displayModeBar": False})
-        with cc:
-            st.plotly_chart(_c(ch.margin_waterfall(sale), 258),
+
+        row2_left, row2_right = st.columns(2)
+        with row2_left:
+            st.plotly_chart(_c(ch.margin_waterfall(sale), _H),
+                            use_container_width=True, config={"displayModeBar": False})
+        with row2_right:
+            st.plotly_chart(_c(ch.top_territory_chart(sale), _H),
                             use_container_width=True, config={"displayModeBar": False})
 
     # ── Tab 2: Territory & Customers ─────────────────────────────────────────
@@ -733,11 +740,9 @@ elif page == "🏭 Supplier Analytics":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🚨 Anomaly Detection":
     st.title("Financial Transaction Anomaly Detection")
-    st.caption("Isolation Forest · RobustScaler · Log-transformed Features · 5 % Contamination")
+    st.caption("Isolation Forest · RobustScaler · Log-transformed Features · 5 % Contamination · WebGL rendering")
 
-    with st.spinner("Running Isolation Forest…"):
-        # Use session_state instead of @st.cache_data to avoid DataFrame
-        # hashing issues that caused the page not to load.
+    with st.spinner("Running Isolation Forest (runs once, then cached in session)…"):
         if "anom_info" not in st.session_state:
             try:
                 st.session_state["anom_info"] = build_anomaly_detector(txn)
@@ -748,7 +753,7 @@ elif page == "🚨 Anomaly Detection":
                     "`Total Including Tax` and `Outstanding Balance` columns."
                 )
                 st.stop()
-        anom_info = st.session_state["anom_info"]
+    anom_info = st.session_state["anom_info"]
 
     anom_df = anom_info["df"].copy()
     # Ensure Is_Anomaly is strictly boolean regardless of dtype from cache/downcast

@@ -141,6 +141,39 @@ def inventory_risk_scatter(inv_df):
     return fig
 
 
+# ── Top Sales Territory ───────────────────────────────────────────────────────
+def top_territory_chart(sale_df):
+    """Horizontal bar — revenue & margin % by sales territory (top 8)."""
+    terr = (sale_df.groupby("Sales Territory")
+            .agg(Revenue=("Total Excluding Tax", "sum"),
+                 Profit=("Profit", "sum"))
+            .reset_index()
+            .dropna(subset=["Sales Territory"])
+            .assign(Margin=lambda d: d["Profit"] / d["Revenue"].replace(0, np.nan) * 100)
+            .sort_values("Revenue", ascending=True)
+            .tail(8))
+
+    colors = terr["Margin"].apply(
+        lambda m: "#00C49A" if m >= 30 else "#FFD700" if m >= 15 else "#FF6B35")
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        y=terr["Sales Territory"], x=terr["Revenue"],
+        orientation="h", name="Revenue",
+        marker_color=colors, opacity=0.85,
+        text=terr["Margin"].apply(lambda m: f"{m:.1f}%"),
+        textposition="outside",
+        textfont=dict(size=10, color="#E0E0E0"),
+    ))
+    fig.update_layout(**LAYOUT,
+                      title=dict(text="Revenue by Sales Territory",
+                                 font=dict(size=15, color="#00D4FF")),
+                      xaxis_title="Revenue ($)", yaxis_title="",
+                      legend=dict(bgcolor="rgba(0,0,0,0)"),
+                      xaxis=dict(tickformat="$,.0s"))
+    return fig
+
+
 # ── Supplier scoreboard ───────────────────────────────────────────────────────
 def supplier_scoreboard(sup_df):
     df = sup_df.sort_values("Quality_Score", ascending=True).tail(20)
@@ -162,28 +195,35 @@ def supplier_scoreboard(sup_df):
 # ── Anomaly scatter ───────────────────────────────────────────────────────────
 def anomaly_chart(txn_df):
     """
-    Plot ALL transactions — Normal as a faint blue cloud, Anomalies as bright
-    red dots on top.  Two explicit go.Scatter traces are used instead of
-    px.scatter so there is zero ambiguity about colour/opacity mapping:
-    px.scatter serialises boolean Is_Anomaly to strings and combines marker
-    opacity with any alpha already in the colour string, both of which caused
-    the Normal trace to be essentially invisible (effective alpha ~0.2).
+    WebGL scatter (go.Scattergl) with normal transactions sampled to max 3 000 pts.
+
+    Root cause of browser freeze: SVG scatter with 94 K points creates 94 K DOM
+    nodes — any browser will hang.  Two fixes:
+      1. go.Scattergl renders via WebGL, not SVG → can handle 1 M+ points.
+      2. Normal transactions are random-sampled to 3 000 for display; ALL
+         anomalies are always shown (typically ~4 950 rows).
     """
     df = txn_df.copy()
-    # coerce Is_Anomaly to plain bool regardless of original dtype
-    is_anom = df["Is_Anomaly"].astype(bool)
-    normal   = df[~is_anom]
+    is_anom   = df["Is_Anomaly"].astype(bool)
+    normal    = df[~is_anom]
     anomalous = df[is_anom]
+
+    # Sample normals — display 3 K representative background points
+    _MAX_NORMAL = 3_000
+    if len(normal) > _MAX_NORMAL:
+        normal = normal.sample(_MAX_NORMAL, random_state=42)
+
+    x_col = "Total Including Tax"
+    y_col = "Outstanding Balance"
 
     fig = go.Figure()
 
-    # ① Normal transactions — small, faint, rendered first (background)
-    fig.add_trace(go.Scatter(
-        x=normal["Total Including Tax"],
-        y=normal["Outstanding Balance"],
+    # ① Normal — faint WebGL cloud (background)
+    fig.add_trace(go.Scattergl(
+        x=normal[x_col], y=normal[y_col],
         mode="markers",
-        name=f"Normal ({len(normal):,})",
-        marker=dict(color="#00D4FF", size=4, opacity=0.25),
+        name=f"Normal (sample of {_MAX_NORMAL:,})",
+        marker=dict(color="#00D4FF", size=3, opacity=0.20),
         hovertemplate=(
             "<b>Normal</b><br>"
             "Total incl. Tax: $%{x:,.0f}<br>"
@@ -191,14 +231,12 @@ def anomaly_chart(txn_df):
         ),
     ))
 
-    # ② Anomalous transactions — larger, vivid red, rendered on top
-    fig.add_trace(go.Scatter(
-        x=anomalous["Total Including Tax"],
-        y=anomalous["Outstanding Balance"],
+    # ② Anomalies — vivid red WebGL dots (foreground, all shown)
+    fig.add_trace(go.Scattergl(
+        x=anomalous[x_col], y=anomalous[y_col],
         mode="markers",
-        name=f"Anomaly ({len(anomalous):,})",
-        marker=dict(color="#FF4C6E", size=7, opacity=0.85,
-                    line=dict(color="#FF4C6E", width=0.5)),
+        name=f"🚨 Anomaly ({len(anomalous):,})",
+        marker=dict(color="#FF4C6E", size=6, opacity=0.90),
         hovertemplate=(
             "<b>🚨 Anomaly</b><br>"
             "Total incl. Tax: $%{x:,.0f}<br>"
@@ -208,7 +246,7 @@ def anomaly_chart(txn_df):
 
     fig.update_layout(
         **LAYOUT,
-        title=dict(text="Transaction Anomaly Detection",
+        title=dict(text="Transaction Anomaly Detection (WebGL)",
                    font=dict(size=15, color="#00D4FF")),
         xaxis_title="Total Including Tax ($)",
         yaxis_title="Outstanding Balance ($)",
