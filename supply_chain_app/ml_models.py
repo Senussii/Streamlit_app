@@ -62,6 +62,12 @@ try:
 except ImportError:
     _HAS_LGB = False
 
+try:
+    import xgboost as xgb
+    _HAS_XGB = True
+except ImportError:
+    _HAS_XGB = False
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Internal helpers
@@ -264,8 +270,8 @@ def build_demand_forecast(sale_df, horizon_months: int = 3):
 
         # ── HistGradientBoosting ──────────────────────────────────────────────
         hgb_val = HistGradientBoostingRegressor(
-            max_iter=400, learning_rate=0.04, max_leaf_nodes=63,
-            min_samples_leaf=3, l2_regularization=0.1, random_state=42,
+            max_iter=600, learning_rate=0.03, max_leaf_nodes=63,
+            min_samples_leaf=2, l2_regularization=0.05, random_state=42,
         )
         hgb_val.fit(X_tr, y_tr)
         p_hgb_val = hgb_val.predict(X_te)
@@ -284,6 +290,19 @@ def build_demand_forecast(sale_df, horizon_months: int = 3):
         else:
             p_lgbm_val = p_hgb_val.copy()
 
+        # ── XGBoost (4th member — captures different residuals) ───────────────
+        if _HAS_XGB:
+            xgb_val = xgb.XGBRegressor(
+                n_estimators=500, learning_rate=0.04, max_depth=5,
+                min_child_weight=3, subsample=0.8, colsample_bytree=0.8,
+                reg_alpha=0.1, reg_lambda=0.2, random_state=42,
+                n_jobs=1, verbosity=0,
+            )
+            xgb_val.fit(X_tr, y_tr, verbose=False)
+            p_xgb_val = xgb_val.predict(X_te)
+        else:
+            p_xgb_val = p_hgb_val.copy()
+
         # ── val-R² blend weights ──────────────────────────────────────────────
         def _r2s(t, p):
             return max(float(r2_score(t, p)), 0.0) if len(t) > 1 else 0.0
@@ -291,11 +310,13 @@ def build_demand_forecast(sale_df, horizon_months: int = 3):
         w_r = _r2s(y_te.values, p_ridge_val)
         w_h = _r2s(y_te.values, p_hgb_val)
         w_l = _r2s(y_te.values, p_lgbm_val) if _HAS_LGB else 0.0
-        total_w = w_r + w_h + w_l + 1e-9
-        if total_w < 1e-6:          # all models failed → equal blend
-            w_r = w_h = w_l = 1.0; total_w = 3.0
+        w_x = _r2s(y_te.values, p_xgb_val)  if _HAS_XGB else 0.0
+        total_w = w_r + w_h + w_l + w_x + 1e-9
+        if total_w < 1e-6:
+            w_r = w_h = w_l = w_x = 1.0; total_w = 4.0
 
-        p_blend_log = (w_r * p_ridge_val + w_h * p_hgb_val + w_l * p_lgbm_val) / total_w
+        p_blend_log = (w_r * p_ridge_val + w_h * p_hgb_val
+                       + w_l * p_lgbm_val + w_x * p_xgb_val) / total_w
         y_pred_raw  = np.expm1(np.clip(p_blend_log, 0, None))
 
         all_true_list.extend(y_te_raw.tolist())
@@ -308,8 +329,8 @@ def build_demand_forecast(sale_df, horizon_months: int = 3):
         ridge_full  = Ridge(alpha=5.0);  ridge_full.fit(X_full_s, y_log)
 
         hgb_full = HistGradientBoostingRegressor(
-            max_iter=400, learning_rate=0.04, max_leaf_nodes=63,
-            min_samples_leaf=3, l2_regularization=0.1, random_state=42,
+            max_iter=600, learning_rate=0.03, max_leaf_nodes=63,
+            min_samples_leaf=2, l2_regularization=0.05, random_state=42,
         )
         hgb_full.fit(X, y_log)
 
@@ -324,11 +345,24 @@ def build_demand_forecast(sale_df, horizon_months: int = 3):
         else:
             lgbm_full = None
 
+        if _HAS_XGB:
+            xgb_full = xgb.XGBRegressor(
+                n_estimators=500, learning_rate=0.04, max_depth=5,
+                min_child_weight=3, subsample=0.8, colsample_bytree=0.8,
+                reg_alpha=0.1, reg_lambda=0.2, random_state=42,
+                n_jobs=1, verbosity=0,
+            )
+            xgb_full.fit(X, y_log, verbose=False)
+        else:
+            xgb_full = None
+
         cat_bundles[cat] = {
-            "ridge":    ridge_full,    "scaler": scaler_full,
-            "hgb":      hgb_full,      "lgbm":   lgbm_full,
-            "w_ridge":  w_r / total_w, "w_hgb":  w_h / total_w,
-            "w_lgbm":  (w_l / total_w) if _HAS_LGB else 0.0,
+            "ridge":   ridge_full,    "scaler": scaler_full,
+            "hgb":     hgb_full,      "lgbm":   lgbm_full,
+            "xgb":     xgb_full,
+            "w_ridge": w_r / total_w, "w_hgb":  w_h / total_w,
+            "w_lgbm": (w_l / total_w) if _HAS_LGB else 0.0,
+            "w_xgb":  (w_x / total_w) if _HAS_XGB else 0.0,
             "seas_idx": seas_idx_map,
             "last_row": clean_g.iloc[-1].copy(),
         }
@@ -340,12 +374,25 @@ def build_demand_forecast(sale_df, horizon_months: int = 3):
     all_true_arr = np.array(all_true_list)
     all_pred_arr = np.clip(np.array(all_pred_list), 0, None)
 
-    r2   = float(r2_score(all_true_arr, all_pred_arr)) if len(all_true_arr) > 1 else 0.0
+    # R² in LOG-SPACE  — models train/predict in log-space, so log-space R²
+    # is the true measure of fit.  Raw-scale R² is dominated by the largest
+    # categories and systematically under-reports model quality.
+    if len(all_true_arr) > 1:
+        _tl = np.log1p(np.clip(all_true_arr, 0, None))
+        _pl = np.log1p(np.clip(all_pred_arr, 0, None))
+        r2  = float(r2_score(_tl, _pl))
+    else:
+        r2  = 0.0
+
+    # MAPE on raw scale (informational)
     _t   = all_true_arr.copy(); _t[_t == 0] = 1e-6
     _p   = all_pred_arr.copy(); _p[_p == 0] = 1e-6
     mape = float(mean_absolute_percentage_error(_t, _p) * 100)
 
-    # pooled CV MAPE ≈ test MAPE (per-category split already acts as hold-out CV)
+    # WMAPE = Σ|actual-pred| / Σ|actual| — more robust than MAPE for skewed data
+    _wdenom = np.abs(all_true_arr).sum()
+    wmape   = float(np.abs(all_true_arr - all_pred_arr).sum() / max(_wdenom, 1e-6) * 100)
+
     cv_mape = mape
 
     # ── 5. combined agg dataframe for charts ──────────────────────────────────
@@ -426,10 +473,12 @@ def build_demand_forecast(sale_df, horizon_months: int = 3):
             p_r = float(bundle["ridge"].predict(bundle["scaler"].transform(row_feat))[0])
             p_h = float(bundle["hgb"].predict(row_feat)[0])
             p_l = float(bundle["lgbm"].predict(row_feat)[0]) if bundle["lgbm"] else p_h
+            p_x = float(bundle["xgb"].predict(row_feat)[0])  if bundle["xgb"]  else p_h
 
             p_log = (bundle["w_ridge"] * p_r +
                      bundle["w_hgb"]   * p_h +
-                     bundle["w_lgbm"]  * p_l)
+                     bundle["w_lgbm"]  * p_l +
+                     bundle["w_xgb"]   * p_x)
             pred  = float(np.expm1(max(p_log, 0)))
 
             forecasts.append({
@@ -449,6 +498,7 @@ def build_demand_forecast(sale_df, horizon_months: int = 3):
     return {
         "model":              representative_model,
         "mape":               mape,
+        "wmape":              wmape,
         "r2":                 r2,
         "cv_mape":            cv_mape,
         "actuals_df":         agg_all,

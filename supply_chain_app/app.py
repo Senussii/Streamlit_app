@@ -323,10 +323,9 @@ if page == "🏠 Executive Dashboard":
             st.caption("🌟 Top 10 Customers by Revenue")
             st.dataframe(
                 top_cust.style.format({"Revenue": "${:,.0f}", "Profit": "${:,.0f}"}),
-                use_container_width=True, height=260,
-                hide_index=True,
+                use_container_width=True, height=260, hide_index=True,
                 column_config={
-                    "Rank":     st.column_config.TextColumn("Rank",     width="small"),
+                    "Rank":     st.column_config.TextColumn("#",        width="small"),
                     "Customer": st.column_config.TextColumn("Customer", width="large"),
                     "Revenue":  st.column_config.TextColumn("Revenue",  width="medium"),
                     "Profit":   st.column_config.TextColumn("Profit",   width="medium"),
@@ -352,17 +351,18 @@ elif page == "📈 Demand Forecasting":
     with st.spinner("Training demand forecast model…"):
         info = _forecast(_sale_for_forecast(sale), horizon)
 
-    mape = info.get("mape", 0.0)
-    r2   = info.get("r2",   0.0)
-    q_mape = "good" if mape < 10 else "warn" if mape < 20 else ""
-    q_r2   = "good" if r2   > 0.7 else "warn" if r2   > 0.4 else ""
-    st.session_state.model_metrics["Demand MAPE"] = (f"{mape:.1f}%", q_mape)
-    st.session_state.model_metrics["Demand R²"]   = (f"{r2:.3f}",    q_r2)
+    mape  = info.get("mape",  0.0)
+    wmape = info.get("wmape", 0.0)
+    r2    = info.get("r2",    0.0)
+    q_mape = "good" if mape  < 10 else "warn" if mape  < 20 else ""
+    q_r2   = "good" if r2    > 0.7 else "warn" if r2    > 0.4 else ""
+    st.session_state.model_metrics["Demand MAPE"]     = (f"{mape:.1f}%",  q_mape)
+    st.session_state.model_metrics["Demand R²(log)"]  = (f"{r2:.3f}",     q_r2)
 
-    with km1: metric_card("MAPE",     f"{mape:.1f}", suffix="%")
-    with km2: metric_card("R² Score", f"{r2:.3f}")
-    with km3: metric_card("Train pts",f"{len(info.get('actuals_df', []))}")
-    with km4: metric_card("Horizon",  f"{horizon}", suffix=" mo")
+    with km1: metric_card("MAPE",           f"{mape:.1f}",  suffix="%")
+    with km2: metric_card("WMAPE",          f"{wmape:.1f}", suffix="%")
+    with km3: metric_card("R² (log-scale)", f"{r2:.3f}")
+    with km4: metric_card("Horizon",        f"{horizon}",   suffix=" mo")
 
     # Row 2 — forecast chart
     cats     = sorted(sale["Stock Category"].dropna().unique())
@@ -387,7 +387,7 @@ elif page == "📈 Demand Forecasting":
         template="plotly_dark", paper_bgcolor="#0E1117", plot_bgcolor="#0E1117",
         font_color="#E0E0E0",
         xaxis_title="Actual Units", yaxis_title="Predicted Units",
-        title=dict(text=f"Actual vs Predicted  —  R²={r2:.3f}",
+        title=dict(text=f"Actual vs Predicted  —  R²={r2:.3f} (log-scale)",
                    font=dict(color="#00D4FF", size=13)),
         legend=dict(bgcolor="rgba(0,0,0,0)"))
     st.plotly_chart(_c(fig_ap, 240),
@@ -411,14 +411,12 @@ elif page == "📈 Demand Forecasting":
         fc_show["Forecast Units"] = fc_show["Forecast Units"].round(0).astype(int)
         st.dataframe(
             fc_show,
-            use_container_width=True,
-            height=230,
-            hide_index=True,
+            use_container_width=True, height=230, hide_index=True,
             column_config={
-                "Category":      st.column_config.TextColumn("Category",       width="large"),
-                "Year":          st.column_config.NumberColumn("Year",          width="small", format="%d"),
-                "Month":         st.column_config.NumberColumn("Month",         width="small", format="%d"),
-                "Forecast Units": st.column_config.NumberColumn("Forecast Units", width="medium"),
+                "Category":       st.column_config.TextColumn("Category",       width="large"),
+                "Year":           st.column_config.NumberColumn("Yr",           width="small", format="%d"),
+                "Month":          st.column_config.NumberColumn("Mo",           width="small", format="%d"),
+                "Forecast Units": st.column_config.NumberColumn("Forecast Qty", width="medium"),
             },
         )
     else:
@@ -489,18 +487,18 @@ elif page == "📦 Inventory Risk":
         "Target Stock Level": "{:,.0f}",
         "Monthly_Velocity":   "{:,.1f}",
         "Days_Coverage":      "{:,.0f}",
-        "Stock Value":        "${:,.2f}",
+        "Stock Value":        "${:,.0f}",
     }), use_container_width=True, height=240, hide_index=True,
     column_config={
-        "Stock Item":          st.column_config.TextColumn("SKU",            width="large"),
-        "Stock Category":      st.column_config.TextColumn("Category",       width="medium"),
-        "Quantity On Hand":    st.column_config.NumberColumn("QoH",          width="small"),
-        "Reorder Level":       st.column_config.NumberColumn("Reorder Lvl",  width="small"),
-        "Target Stock Level":  st.column_config.NumberColumn("Target Stock", width="small"),
-        "Monthly_Velocity":    st.column_config.NumberColumn("Mo. Velocity", width="small"),
-        "Days_Coverage":       st.column_config.NumberColumn("Days Cover",   width="small"),
-        "Stock Value":         st.column_config.TextColumn("Stock Value",    width="medium"),
-        "Lead Time Days":      st.column_config.NumberColumn("Lead Days",    width="small"),
+        "Stock Item":          st.column_config.TextColumn("SKU",         width="large"),
+        "Stock Category":      st.column_config.TextColumn("Category",    width="medium"),
+        "Quantity On Hand":    st.column_config.NumberColumn("QoH",       width="small"),
+        "Reorder Level":       st.column_config.NumberColumn("Reorder",   width="small"),
+        "Target Stock Level":  st.column_config.NumberColumn("Target",    width="small"),
+        "Monthly_Velocity":    st.column_config.NumberColumn("Mo.Vel",    width="small"),
+        "Days_Coverage":       st.column_config.NumberColumn("Days Cov",  width="small"),
+        "Stock Value":         st.column_config.TextColumn("$ Value",     width="medium"),
+        "Lead Time Days":      st.column_config.NumberColumn("Lead d",    width="small"),
     })
 
     if inv_info["report"]:
@@ -562,14 +560,13 @@ elif page == "👥 Customer Intelligence":
             st.dataframe(at_risk.style.format({
                 "Revenue ($)": "${:,.0f}", "Churn %": "{:.1f}%",
             }).background_gradient(subset=["Churn %"], cmap="RdYlGn_r"),
-                use_container_width=True, height=280,
-                hide_index=True,
+                use_container_width=True, height=280, hide_index=True,
                 column_config={
-                    "Customer":    st.column_config.TextColumn("Customer Name", width="large"),
-                    "Recency":     st.column_config.NumberColumn("Recency (d)", width="small"),
-                    "Frequency":   st.column_config.NumberColumn("Orders",      width="small"),
-                    "Revenue ($)": st.column_config.TextColumn("Revenue",       width="medium"),
-                    "Churn %":     st.column_config.TextColumn("Churn Risk",    width="medium"),
+                    "Customer":    st.column_config.TextColumn("Customer",    width="large"),
+                    "Recency":     st.column_config.NumberColumn("Rec(d)",    width="small"),
+                    "Frequency":   st.column_config.NumberColumn("Orders",    width="small"),
+                    "Revenue ($)": st.column_config.TextColumn("Revenue",     width="medium"),
+                    "Churn %":     st.column_config.TextColumn("Churn Risk",  width="medium"),
                 })
 
     with tab_seg:
@@ -623,11 +620,11 @@ elif page == "👥 Customer Intelligence":
             "Avg_Monetary":  "${:,.0f}",
         }), use_container_width=True, height=215, hide_index=True,
         column_config={
-            "Segment Name":  st.column_config.TextColumn("Segment",        width="large"),
-            "Count":         st.column_config.NumberColumn("Customers",     width="medium"),
-            "Avg_Recency":   st.column_config.NumberColumn("Avg Recency (d)", width="medium"),
-            "Avg_Frequency": st.column_config.NumberColumn("Avg Orders",    width="medium"),
-            "Avg_Monetary":  st.column_config.TextColumn("Avg Revenue",     width="medium"),
+            "Segment Name":  st.column_config.TextColumn("Segment",       width="large"),
+            "Count":         st.column_config.NumberColumn("Customers",   width="small"),
+            "Avg_Recency":   st.column_config.NumberColumn("Avg Rec(d)",  width="small"),
+            "Avg_Frequency": st.column_config.NumberColumn("Avg Orders",  width="small"),
+            "Avg_Monetary":  st.column_config.TextColumn("Avg Revenue",   width="medium"),
         })
 
 
@@ -676,31 +673,27 @@ elif page == "🏭 Supplier Analytics":
         st.plotly_chart(_c(ch.fulfillment_heatmap(pur), 320),
                         use_container_width=True, config={"displayModeBar": False})
 
-        # Full scorecard table full-width below — all columns visible
+        # Full scorecard — "Supplier Rating" removed per business request
         st.caption("📋 Full Supplier Scorecard  *(True Fill = unit-weighted Σreceived/Σordered)*")
         show_cols = ["Supplier", "Grade", "Quality_Score"]
-        show_cols += [c for c in ["True_Fulfillment", "Trend_Direction", "Total_Orders",
-                                   "Total_Value", "Supplier Rating"] if c in sup_df.columns]
+        show_cols += [c for c in ["True_Fulfillment", "Trend_Direction",
+                                   "Total_Orders", "Total_Value"] if c in sup_df.columns]
         sc_df = sup_df[show_cols].sort_values("Quality_Score", ascending=False)
-        fmt = {"Quality_Score": "{:.1f}", "Total_Value": "${:,.0f}",
-               "Supplier Rating": "{:.1f}"}
+        fmt   = {"Quality_Score": "{:.1f}", "Total_Value": "${:,.0f}"}
         if "True_Fulfillment" in sc_df.columns:
             fmt["True_Fulfillment"] = "{:.1f}%"
         st.dataframe(
             sc_df.style.format(fmt)
                        .background_gradient(subset=["Quality_Score"], cmap="RdYlGn"),
-            use_container_width=True,
-            height=310,
-            hide_index=True,
+            use_container_width=True, height=310, hide_index=True,
             column_config={
-                "Supplier":        st.column_config.TextColumn("Supplier",        width="large"),
-                "Grade":           st.column_config.TextColumn("Grade",           width="small"),
-                "Quality_Score":   st.column_config.NumberColumn("Score",         width="small",  format="%.1f"),
-                "True_Fulfillment":st.column_config.TextColumn("Fill Rate",       width="medium"),
-                "Trend_Direction": st.column_config.TextColumn("Trend",           width="medium"),
-                "Total_Orders":    st.column_config.NumberColumn("Orders",        width="small"),
-                "Total_Value":     st.column_config.TextColumn("Total Value",     width="medium"),
-                "Supplier Rating": st.column_config.NumberColumn("Rating",        width="small"),
+                "Supplier":         st.column_config.TextColumn("Supplier",    width="large"),
+                "Grade":            st.column_config.TextColumn("Grd",         width="small"),
+                "Quality_Score":    st.column_config.NumberColumn("Score /100", width="small", format="%.1f"),
+                "True_Fulfillment": st.column_config.TextColumn("Fill %",      width="small"),
+                "Trend_Direction":  st.column_config.TextColumn("Trend",       width="medium"),
+                "Total_Orders":     st.column_config.NumberColumn("Orders",    width="small"),
+                "Total_Value":      st.column_config.TextColumn("$ Value",     width="medium"),
             },
         )
 
@@ -716,18 +709,16 @@ elif page == "🏭 Supplier Analytics":
                 p_df.style
                     .format({c: "{:.1f}" for c in gradient_cols})
                     .background_gradient(subset=gradient_cols, cmap="RdYlGn", vmin=0, vmax=100),
-                use_container_width=True,
-                height=350,
-                hide_index=True,
+                use_container_width=True, height=350, hide_index=True,
                 column_config={
-                    "Supplier":       st.column_config.TextColumn("Supplier",       width="large"),
-                    "Grade":          st.column_config.TextColumn("Grade",          width="small"),
-                    "P_Reliability":  st.column_config.NumberColumn("Reliability",  width="medium", format="%.1f"),
-                    "P_Consistency":  st.column_config.NumberColumn("Consistency",  width="medium", format="%.1f"),
-                    "P_Trend":        st.column_config.NumberColumn("Trend",        width="medium", format="%.1f"),
-                    "P_Volume":       st.column_config.NumberColumn("Volume",       width="medium", format="%.1f"),
-                    "P_Attributes":   st.column_config.NumberColumn("Attributes",   width="medium", format="%.1f"),
-                    "Quality_Score":  st.column_config.NumberColumn("Total Score",  width="medium", format="%.1f"),
+                    "Supplier":       st.column_config.TextColumn("Supplier",    width="large"),
+                    "Grade":          st.column_config.TextColumn("Grd",         width="small"),
+                    "P_Reliability":  st.column_config.NumberColumn("Reliab.",   width="small", format="%.1f"),
+                    "P_Consistency":  st.column_config.NumberColumn("Consist.",  width="small", format="%.1f"),
+                    "P_Trend":        st.column_config.NumberColumn("Trend",     width="small", format="%.1f"),
+                    "P_Volume":       st.column_config.NumberColumn("Volume",    width="small", format="%.1f"),
+                    "P_Attributes":   st.column_config.NumberColumn("Attrib.",   width="small", format="%.1f"),
+                    "Quality_Score":  st.column_config.NumberColumn("Total /100",width="medium", format="%.1f"),
                 },
             )
         else:
@@ -745,15 +736,19 @@ elif page == "🚨 Anomaly Detection":
     st.caption("Isolation Forest · RobustScaler · Log-transformed Features · 5 % Contamination")
 
     with st.spinner("Running Isolation Forest…"):
-        try:
-            anom_info = _anomaly(txn)
-        except Exception as _e:
-            st.error(
-                f"**Anomaly detection failed:** {_e}\n\n"
-                "Check that `Fact.Transaction.csv` contains the columns "
-                "`Total Including Tax`, `Outstanding Balance`."
-            )
-            st.stop()
+        # Use session_state instead of @st.cache_data to avoid DataFrame
+        # hashing issues that caused the page not to load.
+        if "anom_info" not in st.session_state:
+            try:
+                st.session_state["anom_info"] = build_anomaly_detector(txn)
+            except Exception as _e:
+                st.error(
+                    f"**Anomaly detection failed:** {_e}\n\n"
+                    "Check that `Fact.Transaction.csv` contains "
+                    "`Total Including Tax` and `Outstanding Balance` columns."
+                )
+                st.stop()
+        anom_info = st.session_state["anom_info"]
 
     anom_df = anom_info["df"].copy()
     # Ensure Is_Anomaly is strictly boolean regardless of dtype from cache/downcast
