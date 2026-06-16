@@ -119,25 +119,50 @@ def forecast_chart(info, selected_categories):
 
 # ── Inventory risk matrix ─────────────────────────────────────────────────────
 def inventory_risk_scatter(inv_df):
-    # Drop rows missing the key axes; Monthly_Velocity is already populated
-    # by build_stockout_classifier (0 only when no movement matched the SKU).
+    """
+    Three explicit traces — LOW (small, background), MEDIUM (medium), HIGH (large, foreground).
+    Drawing order LOW→MEDIUM→HIGH guarantees red/yellow dots are always on top.
+    Size is fixed per risk level so a $33 HIGH-risk SKU is just as visible as a $1M LOW-risk one.
+    (The old px.scatter with size='Stock Value' made HIGH items microscopically small.)
+    """
     df = inv_df.copy().dropna(subset=["Quantity On Hand", "Monthly_Velocity"])
-    color_map = {"LOW": "#00C49A", "MEDIUM": "#FFD700", "HIGH": "#FF4C6E"}
     risk_col = "Predicted_Risk_Name" if "Predicted_Risk_Name" in df.columns else "Risk_Label_Name"
-    fig = px.scatter(
-        df, x="Quantity On Hand", y="Monthly_Velocity",
-        color=risk_col,
-        color_discrete_map=color_map,
-        size="Stock Value", size_max=30,
-        hover_data=["Stock Item", "Stock Category", "Days_Coverage"],
-        labels={"Quantity On Hand": "Stock on Hand",
-                "Monthly_Velocity": "Monthly Velocity (units)"},
-        category_orders={risk_col: ["LOW", "MEDIUM", "HIGH"]},
-    )
+
+    cfg = {
+        "LOW":    dict(color="#00C49A", size=8,  opacity=0.55, symbol="circle"),
+        "MEDIUM": dict(color="#FFD700", size=13, opacity=0.80, symbol="diamond"),
+        "HIGH":   dict(color="#FF4C6E", size=18, opacity=1.00, symbol="circle"),
+    }
+
+    fig = go.Figure()
+    for level in ["LOW", "MEDIUM", "HIGH"]:          # LOW first → HIGH on top
+        sub = df[df[risk_col] == level]
+        if sub.empty:
+            continue
+        c = cfg[level]
+        hover = (
+            "<b>" + sub["Stock Item"].fillna("").astype(str) + "</b><br>"
+            "Category: "    + sub["Stock Category"].fillna("").astype(str) + "<br>"
+            "QoH: "         + sub["Quantity On Hand"].apply(lambda v: f"{v:,.0f}") + "<br>"
+            "Mo.Velocity: " + sub["Monthly_Velocity"].apply(lambda v: f"{v:,.1f}") + "<br>"
+            "Days Cover: "  + sub["Days_Coverage"].apply(lambda v: f"{v:,.0f}" if pd.notna(v) else "N/A")
+        )
+        fig.add_trace(go.Scatter(
+            x=sub["Quantity On Hand"], y=sub["Monthly_Velocity"],
+            mode="markers",
+            name=level,
+            marker=dict(color=c["color"], size=c["size"],
+                        opacity=c["opacity"], symbol=c["symbol"],
+                        line=dict(color="white", width=0.5) if level == "HIGH" else dict(width=0)),
+            hovertemplate=hover + "<extra></extra>",
+        ))
+
     fig.update_layout(**LAYOUT,
                       title=dict(text="Inventory Risk Matrix: Stock vs Velocity",
                                  font=dict(size=15, color="#00D4FF")),
-                      legend=dict(bgcolor="rgba(0,0,0,0)"))
+                      xaxis_title="Stock on Hand",
+                      yaxis_title="Monthly Velocity (units)",
+                      legend=dict(bgcolor="rgba(0,0,0,0)", title="Risk Level"))
     return fig
 
 

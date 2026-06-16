@@ -330,7 +330,7 @@ if page == "🏠 Executive Dashboard":
             st.caption("🌟 Top 10 Customers by Revenue")
             st.dataframe(
                 top_cust.style.format({"Revenue": "${:,.0f}", "Profit": "${:,.0f}"}),
-                use_container_width=True, height=260, hide_index=True,
+                use_container_width=True, height=min(len(top_cust)*35+38, 400), hide_index=True,
                 column_config={
                     "Rank":     st.column_config.TextColumn("#",        width="small"),
                     "Customer": st.column_config.TextColumn("Customer", width="large"),
@@ -418,7 +418,7 @@ elif page == "📈 Demand Forecasting":
         fc_show["Forecast Units"] = fc_show["Forecast Units"].round(0).astype(int)
         st.dataframe(
             fc_show,
-            use_container_width=True, height=230, hide_index=True,
+            use_container_width=True, height=min(len(fc_show)*35+38, 300), hide_index=True,
             column_config={
                 "Category":       st.column_config.TextColumn("Category",       width="large"),
                 "Year":           st.column_config.NumberColumn("Yr",           width="small", format="%d"),
@@ -495,7 +495,7 @@ elif page == "📦 Inventory Risk":
         "Monthly_Velocity":   "{:,.1f}",
         "Days_Coverage":      "{:,.0f}",
         "Stock Value":        "${:,.0f}",
-    }), use_container_width=True, height=240, hide_index=True,
+    }), use_container_width=True, height=min(max(len(high_df),1)*35+38, 320), hide_index=True,
     column_config={
         "Stock Item":          st.column_config.TextColumn("SKU",         width="large"),
         "Stock Category":      st.column_config.TextColumn("Category",    width="medium"),
@@ -541,14 +541,17 @@ elif page == "👥 Customer Intelligence":
             q = "good" if churn_info["auc"] > 0.80 else "warn"
             st.session_state.model_metrics["Churn AUC"] = (f"{churn_info['auc']:.3f}", q)
 
+        # Compute prediction accuracy % — more interpretable than ROC-AUC for business users
+        _rfm_clean = rfm.dropna(subset=["Churned", "Churn_Pred"])
+        _pred_acc  = (_rfm_clean["Churned"] == _rfm_clean["Churn_Pred"]).mean() * 100
+
         # KPI row
         k1, k2, k3, k4 = st.columns(4)
         with k1: metric_card("Total Customers",    f"{len(rfm):,}")
         with k2: metric_card("At-Risk",            f"{churn_count:,}",
                               delta_str=f"⚠ {churn_rate:.1f}% rate")
         with k3: metric_card("Low-Risk Customers", f"{active_cnt:,}")
-        with k4: metric_card("ROC-AUC",
-                              f"{churn_info['auc']:.3f}" if churn_info["auc"] else "N/A")
+        with k4: metric_card("Pred. Accuracy",     f"{_pred_acc:.1f}", suffix="%")
 
         # 2-up: churn distribution (left) | at-risk table (right, wider)
         cc1, cc2 = st.columns([2, 3])
@@ -561,19 +564,20 @@ elif page == "👥 Customer Intelligence":
                        [["Customer","Recency","Frequency","Monetary","Churn_Prob"]]
                        .rename(columns={"Monetary":"Revenue ($)",
                                         "Churn_Prob":"Churn %"}))
-            at_risk["Churn %"]    = (at_risk["Churn %"] * 100).round(1)
-            at_risk["Revenue ($)"]= at_risk["Revenue ($)"].round(0)
+            at_risk["Churn %"]     = (at_risk["Churn %"] * 100).round(1)
+            at_risk["Revenue ($)"] = at_risk["Revenue ($)"].round(0)
+            _ar_h = min(len(at_risk) * 35 + 38, 280)   # dynamic height — no empty rows
             st.caption("🚨 Top At-Risk Customers")
             st.dataframe(at_risk.style.format({
                 "Revenue ($)": "${:,.0f}", "Churn %": "{:.1f}%",
             }).background_gradient(subset=["Churn %"], cmap="RdYlGn_r"),
-                use_container_width=True, height=280, hide_index=True,
+                use_container_width=True, height=_ar_h, hide_index=True,
                 column_config={
-                    "Customer":    st.column_config.TextColumn("Customer",    width="large"),
-                    "Recency":     st.column_config.NumberColumn("Rec(d)",    width="small"),
-                    "Frequency":   st.column_config.NumberColumn("Orders",    width="small"),
-                    "Revenue ($)": st.column_config.TextColumn("Revenue",     width="medium"),
-                    "Churn %":     st.column_config.TextColumn("Churn Risk",  width="medium"),
+                    "Customer":    st.column_config.TextColumn("Customer",   width="large"),
+                    "Recency":     st.column_config.NumberColumn("Rec(d)",   width="small"),
+                    "Frequency":   st.column_config.NumberColumn("Orders",   width="small"),
+                    "Revenue ($)": st.column_config.TextColumn("Revenue",    width="small"),
+                    "Churn %":     st.column_config.TextColumn("Churn Risk", width="small"),
                 })
 
     with tab_seg:
@@ -625,7 +629,7 @@ elif page == "👥 Customer Intelligence":
             "Avg_Recency":   "{:.0f}",
             "Avg_Frequency": "{:.0f}",
             "Avg_Monetary":  "${:,.0f}",
-        }), use_container_width=True, height=215, hide_index=True,
+        }), use_container_width=True, height=min(len(seg_sum)*35+38, 280), hide_index=True,
         column_config={
             "Segment Name":  st.column_config.TextColumn("Segment",       width="large"),
             "Count":         st.column_config.NumberColumn("Customers",   width="small"),
@@ -692,7 +696,7 @@ elif page == "🏭 Supplier Analytics":
         st.dataframe(
             sc_df.style.format(fmt)
                        .background_gradient(subset=["Quality_Score"], cmap="RdYlGn"),
-            use_container_width=True, height=310, hide_index=True,
+            use_container_width=True, height=min(len(sc_df)*35+38, 400), hide_index=True,
             column_config={
                 "Supplier":         st.column_config.TextColumn("Supplier",    width="large"),
                 "Grade":            st.column_config.TextColumn("Grd",         width="small"),
@@ -716,7 +720,7 @@ elif page == "🏭 Supplier Analytics":
                 p_df.style
                     .format({c: "{:.1f}" for c in gradient_cols})
                     .background_gradient(subset=gradient_cols, cmap="RdYlGn", vmin=0, vmax=100),
-                use_container_width=True, height=350, hide_index=True,
+                use_container_width=True, height=min(len(p_df)*35+38, 420), hide_index=True,
                 column_config={
                     "Supplier":       st.column_config.TextColumn("Supplier",    width="large"),
                     "Grade":          st.column_config.TextColumn("Grd",         width="small"),
@@ -769,7 +773,8 @@ elif page == "🚨 Anomaly Detection":
     with k2: metric_card("Anomalies Detected",  f"{anom_info['anomaly_count']:,}",
                           delta_str=f"⚠ {anom_info['anomaly_rate']:.1f}% rate")
     _exposure = anom_df.loc[is_anom_mask, "Total Including Tax"].abs().sum() if "Total Including Tax" in anom_df.columns else 0
-    _exp_str  = (f"${_exposure/1e6:.1f}M" if _exposure >= 1e6
+    _exp_str  = (f"${_exposure/1e9:.2f}B" if _exposure >= 1e9
+                 else f"${_exposure/1e6:.1f}M" if _exposure >= 1e6
                  else f"${_exposure/1e3:.1f}K" if _exposure >= 1e3
                  else f"${_exposure:,.0f}")
     with k3: metric_card("$ Exposure", _exp_str)
@@ -841,5 +846,5 @@ elif page == "🚨 Anomaly Detection":
     st.dataframe(top_anom.style.format(fmt_cols)
                  .background_gradient(subset=["Anomaly_Score"] if "Anomaly_Score" in top_anom.columns else [],
                                       cmap="Reds_r"),
-        use_container_width=True, height=300, hide_index=True,
+        use_container_width=True, height=min(len(top_anom)*35+38, 400), hide_index=True,
         column_config=_col_cfg)
