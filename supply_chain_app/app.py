@@ -188,18 +188,19 @@ with st.sidebar:
         _latest_date = sale["Invoice Date Key"].dropna().max()
     _date_str = _latest_date.strftime("%b %Y") if pd.notna(_latest_date) else "N/A"
 
-    # YoY revenue trend
-    _yrs = sorted(sale["Calendar Year"].dropna().unique().tolist()) if "Calendar Year" in sale.columns else []
-    if len(_yrs) >= 2:
-        _ly, _py = int(_yrs[-1]), int(_yrs[-2])
-        _r_ly = sale[sale["Calendar Year"] == _ly]["Total Excluding Tax"].sum()
-        _r_py = sale[sale["Calendar Year"] == _py]["Total Excluding Tax"].sum()
-        _yoy  = (_r_ly - _r_py) / _r_py * 100 if _r_py > 0 else 0
-        _yoy_arrow = "▲" if _yoy >= 0 else "▼"
-        _yoy_color = "#00C49A" if _yoy >= 0 else "#FF4C6E"
-        _yoy_str   = f"{_yoy_arrow} {abs(_yoy):.1f}%"
-    else:
-        _yoy_str, _yoy_color = "N/A", "#AAB4BE"
+    # MoM revenue trend (month-level view — pulse through the current month)
+    _mom_str, _mom_color = "N/A", "#AAB4BE"
+    if "Invoice Date Key" in sale.columns:
+        _sale_dated    = sale.dropna(subset=["Invoice Date Key"])
+        _latest_period = _sale_dated["Invoice Date Key"].dt.to_period("M").max()
+        _prev_period   = _latest_period - 1
+        _r_cm = _sale_dated[_sale_dated["Invoice Date Key"].dt.to_period("M") == _latest_period]["Total Excluding Tax"].sum()
+        _r_pm = _sale_dated[_sale_dated["Invoice Date Key"].dt.to_period("M") == _prev_period]["Total Excluding Tax"].sum()
+        if _r_pm > 0:
+            _mom        = (_r_cm - _r_pm) / _r_pm * 100
+            _mom_arrow  = "▲" if _mom >= 0 else "▼"
+            _mom_color  = "#00C49A" if _mom >= 0 else "#FF4C6E"
+            _mom_str    = f"{_mom_arrow} {abs(_mom):.1f}%"
 
     # Inventory alerts
     _reorder_alerts   = int(inv_raw["Reorder Flag"].sum())   if "Reorder Flag"   in inv_raw.columns else 0
@@ -219,8 +220,8 @@ with st.sidebar:
         <div class="sb-pulse-date">Data through <b style="color:#8BA0B4">{_date_str}</b></div>
         <div class="sb-pulse-grid">
             <div class="sb-pulse-item">
-                <div class="sb-pulse-val" style="color:{_yoy_color}">{_yoy_str}</div>
-                <div class="sb-pulse-lbl">YoY Revenue</div>
+                <div class="sb-pulse-val" style="color:{_mom_color}">{_mom_str}</div>
+                <div class="sb-pulse-lbl">MoM Revenue</div>
             </div>
             <div class="sb-pulse-item">
                 <div class="sb-pulse-val" style="color:{_alert_color}">{_reorder_alerts:,}</div>
@@ -257,9 +258,7 @@ with st.sidebar:
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 1 — EXECUTIVE DASHBOARD
-# Two tabs so every chart fits in one viewport without scrolling.
-# Tab 1 "Overview"   → KPIs + Revenue timeline + Category bar + Waterfall
-# Tab 2 "Territory"  → Territory bar + Top customers table
+# 4-chart 2×2 grid (no tabs) — every chart follows ch.LAYOUT identity
 # ══════════════════════════════════════════════════════════════════════════════
 if page == "🏠 Executive Dashboard":
     st.title("Executive Supply Chain Dashboard")
@@ -273,8 +272,6 @@ if page == "🏠 Executive Dashboard":
     avg_order_v  = sale["Total Including Tax"].mean()
 
     # ── Total orders: distinct WWI Order ID from Fact.Order (not Fact.Sale) ──
-    # Fact.Sale has one row per line item; Fact.Order is the authoritative
-    # order register and gives the correct ~74 K distinct order count.
     try:
         _order_fact   = load_facts()["order"]
         _order_id_col = next(
@@ -292,6 +289,7 @@ if page == "🏠 Executive Dashboard":
             total_orders = int(sale.groupby(
                 ["Customer Key", "Invoice Date Key", "City Key"]
             ).ngroups)
+
     k1, k2, k3, k4, k5, k6 = st.columns(6)
     with k1: metric_card("Total Revenue",   f"${total_rev/1e6:.1f}M")
     with k2: metric_card("Total Profit",    f"${total_profit/1e6:.1f}M")
@@ -300,102 +298,53 @@ if page == "🏠 Executive Dashboard":
     with k5: metric_card("Active SKUs",     f"{total_skus:,}")
     with k6: metric_card("Avg Order Value", f"${avg_order_v:.0f}")
 
-    tab_ov, tab_te = st.tabs(["📊 Overview", "🗺️ Territory & Customers"])
+    # ── 2 × 2 grid — all 4 charts, no tabs ──────────────────────────────────
+    _H = 270
 
-    # ── Tab 1: Overview — 2 × 2 equal-quarter grid ───────────────────────────
-    with tab_ov:
-        _H = 270   # uniform chart height for all 4 quarters
+    row1_left, row1_right = st.columns(2)
+    with row1_left:
+        st.plotly_chart(_c(ch.revenue_timeline(sale), _H),
+                        use_container_width=True, config={"displayModeBar": False})
+    with row1_right:
+        # Territory revenue bar — uses ch.LAYOUT via the shared chart function
+        st.plotly_chart(_c(ch.top_territory_chart(sale), _H),
+                        use_container_width=True, config={"displayModeBar": False})
 
-        row1_left, row1_right = st.columns(2)
-        with row1_left:
-            st.plotly_chart(_c(ch.revenue_timeline(sale), _H),
-                            use_container_width=True, config={"displayModeBar": False})
-        with row1_right:
-            # Revenue by Sales Territory (moved from Territory & Customers tab)
-            _terr_ov = (sale.groupby("Sales Territory")
+    row2_left, row2_right = st.columns(2)
+    with row2_left:
+        st.plotly_chart(_c(ch.margin_waterfall(sale), _H),
+                        use_container_width=True, config={"displayModeBar": False})
+    with row2_right:
+        # Top 10 Customers — horizontal bar, unified with ch.LAYOUT
+        _top_cust_ov = (sale.groupby("Customer")
                         .agg(Revenue=("Total Excluding Tax", "sum"),
                              Profit=("Profit", "sum"))
-                        .reset_index().dropna(subset=["Sales Territory"])
-                        .sort_values("Revenue", ascending=False))
-            _fig_terr = px.bar(
-                _terr_ov, x="Sales Territory", y="Revenue",
-                color="Profit", color_continuous_scale="Viridis",
-                template="plotly_dark",
-                labels={"Revenue": "Revenue ($)", "Profit": "Profit ($)"})
-            _fig_terr.update_layout(
-                paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="#E0E0E0",
-                coloraxis_colorbar=dict(tickfont=dict(color="#E0E0E0")),
-                title=dict(text="Revenue by Sales Territory",
-                           font=dict(color="#00D4FF", size=13)))
-            st.plotly_chart(_c(_fig_terr, _H),
-                            use_container_width=True, config={"displayModeBar": False})
-
-        row2_left, row2_right = st.columns(2)
-        with row2_left:
-            st.plotly_chart(_c(ch.margin_waterfall(sale), _H),
-                            use_container_width=True, config={"displayModeBar": False})
-        with row2_right:
-            # Top 10 Customers by Revenue — horizontal bar chart
-            _top_cust_ov = (sale.groupby("Customer")
-                            .agg(Revenue=("Total Excluding Tax", "sum"),
-                                 Profit=("Profit", "sum"))
-                            .reset_index()
-                            .sort_values("Revenue", ascending=False).head(10))
-            _fig_cust_bar = px.bar(
-                _top_cust_ov.sort_values("Revenue", ascending=True),
-                y="Customer", x="Revenue", orientation="h",
-                color="Revenue", color_continuous_scale="Blues",
-                template="plotly_dark",
-                labels={"Revenue": "Revenue ($)"})
-            _fig_cust_bar.update_layout(
-                paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="#E0E0E0",
-                coloraxis_showscale=False,
-                title=dict(text="🌟 Top 10 Customers by Revenue",
-                           font=dict(color="#00D4FF", size=13)),
-                xaxis=dict(tickformat="$,.0s"))
-            st.plotly_chart(_c(_fig_cust_bar, _H),
-                            use_container_width=True, config={"displayModeBar": False})
-
-    # ── Tab 2: Territory & Customers ─────────────────────────────────────────
-    with tab_te:
-        terr = (sale.groupby("Sales Territory")
-                .agg(Revenue=("Total Excluding Tax","sum"),
-                     Profit=("Profit","sum"))
-                .reset_index().dropna(subset=["Sales Territory"])
-                .sort_values("Revenue", ascending=False))
-        fig_t = px.bar(
-            terr, x="Sales Territory", y="Revenue",
-            color="Profit", color_continuous_scale="Viridis",
-            template="plotly_dark",
-            labels={"Revenue": "Revenue ($)", "Profit": "Profit ($)"})
-        fig_t.update_layout(
-            paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="#E0E0E0",
-            coloraxis_colorbar=dict(tickfont=dict(color="#E0E0E0")),
-            title=dict(text="Revenue by Sales Territory", font=dict(color="#00D4FF")))
-
-        top_cust = (sale.groupby("Customer")
-                    .agg(Revenue=("Total Excluding Tax","sum"),
-                         Profit=("Profit","sum"))
-                    .reset_index()
-                    .sort_values("Revenue", ascending=False).head(10)
-                    .reset_index(drop=True))
-        top_cust.insert(0, "Rank", [f"#{i+1}" for i in range(len(top_cust))])
-
-        ct, cc2 = st.columns([3, 2])
-        with ct:
-            st.plotly_chart(_c(fig_t, 285),
-                            use_container_width=True, config={"displayModeBar": False})
-        with cc2:
-            st.caption("🌟 Top 10 Customers by Revenue")
-            st.dataframe(
-                top_cust.style.format({"Revenue": "${:,.0f}", "Profit": "${:,.0f}"}),
-                use_container_width=True, height=min(len(top_cust)*35+38, 400), hide_index=True,
-                column_config={
-                    "Rank":     st.column_config.TextColumn("#",        width="small"),
-                    "Customer": st.column_config.TextColumn("Customer", width="large"),
-                    "Revenue":  st.column_config.TextColumn("Revenue",  width="medium"),
-                    "Profit":   st.column_config.TextColumn("Profit",   width="medium"),
-                })
+                        .reset_index()
+                        .sort_values("Revenue", ascending=False).head(10)
+                        .sort_values("Revenue", ascending=True))
+        _fig_cust_bar = go.Figure(go.Bar(
+            y=_top_cust_ov["Customer"],
+            x=_top_cust_ov["Revenue"],
+            orientation="h",
+            marker=dict(
+                color=_top_cust_ov["Revenue"].values,
+                colorscale=[[0, "#0A2440"], [0.5, "#0077AA"], [1, "#00D4FF"]],
+                showscale=False,
+            ),
+            text=_top_cust_ov["Revenue"].apply(lambda v: f"${v/1e6:.1f}M"),
+            textposition="outside",
+            textfont=dict(size=9, color="#E0E0E0"),
+            hovertemplate="<b>%{y}</b><br>Revenue: $%{x:,.0f}<extra></extra>",
+        ))
+        _fig_cust_bar.update_layout(
+            **ch.LAYOUT,
+            title=dict(text="🌟 Top 10 Customers by Revenue",
+                       font=dict(size=13, color="#00D4FF")),
+            xaxis=dict(tickformat="$,.0s", title="Revenue ($)"),
+            yaxis_title="",
+        )
+        st.plotly_chart(_c(_fig_cust_bar, _H),
+                        use_container_width=True, config={"displayModeBar": False})
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -514,12 +463,15 @@ elif page == "📦 Inventory Risk":
         risk_cnt.columns = ["Risk", "Count"]
         fig_pie = px.pie(risk_cnt, names="Risk", values="Count",
                          color="Risk",
-                         color_discrete_map={"HIGH":"#FF4C6E","MEDIUM":"#FFD700","LOW":"#00C49A"},
-                         template="plotly_dark")
+                         color_discrete_map={"HIGH": "#FF4C6E", "MEDIUM": "#FFD700", "LOW": "#00C49A"},
+                         template="plotly_dark", hole=0.30)
+        fig_pie.update_traces(textposition="inside", textinfo="percent+label",
+                              insidetextfont=dict(size=10))
         fig_pie.update_layout(
-            paper_bgcolor="#0E1117", font_color="#E0E0E0",
-            legend=dict(bgcolor="rgba(0,0,0,0)"),
-            title=dict(text="Risk Distribution", font=dict(color="#00D4FF", size=13)))
+            **ch.LAYOUT,
+            title=dict(text="Risk Distribution", font=dict(color="#00D4FF", size=13)),
+            legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h", x=0.5, y=-0.05,
+                        xanchor="center"))
         st.plotly_chart(_c(fig_pie, 270),
                         use_container_width=True, config={"displayModeBar": False})
 
@@ -850,11 +802,11 @@ elif page == "🚨 Anomaly Detection":
             x=anom_df.loc[is_anom_mask, "Anomaly_Score"],
             name="Anomaly", marker_color="#FF4C6E", opacity=0.8, nbinsx=35))
         fig_score.update_layout(
-            template="plotly_dark", paper_bgcolor="#0E1117", plot_bgcolor="#0E1117",
-            font_color="#E0E0E0", barmode="overlay",
+            **ch.LAYOUT, barmode="overlay",
             title=dict(text="Score Distribution", font=dict(color="#00D4FF", size=13)),
             xaxis_title="Score", yaxis_title="Count",
-            legend=dict(bgcolor="rgba(0,0,0,0)"))
+            legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h",
+                        x=0.5, y=1.12, xanchor="center", yanchor="top"))
         st.plotly_chart(_c(fig_score, 255),
                         use_container_width=True, config={"displayModeBar": False})
     with ac3:
@@ -864,12 +816,12 @@ elif page == "🚨 Anomaly Detection":
                        .reset_index().rename(columns={"Is_Anomaly": "Anomalies"}))
             fig_pm = px.pie(
                 pm_anom, values="Anomalies", names="Payment Method",
-                color_discrete_sequence=px.colors.sequential.Reds_r,
+                color_discrete_sequence=ch.PALETTE,
                 template="plotly_dark", hole=0.35)
             fig_pm.update_traces(textposition="inside", textinfo="percent+label",
                                  insidetextfont=dict(size=10))
             fig_pm.update_layout(
-                paper_bgcolor="#0E1117", font_color="#E0E0E0",
+                **ch.LAYOUT,
                 title=dict(text="By Payment Method", font=dict(color="#00D4FF", size=13)),
                 legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=9)),
                 margin=dict(l=10, r=10, t=45, b=10))
@@ -885,7 +837,10 @@ elif page == "🚨 Anomaly Detection":
                   "Transaction Type", "Anomaly_Score"]
     _have_cols = [c for c in _want_cols if c in anom_df.columns]
     top_anom = (anom_df.loc[is_anom_mask]
-                .sort_values("Anomaly_Score").head(100)[_have_cols])
+                .sort_values("Anomaly_Score").head(100)[_have_cols]).copy()
+    # Strip time component so the Date column shows a pure date
+    if "Date Key" in top_anom.columns:
+        top_anom["Date Key"] = pd.to_datetime(top_anom["Date Key"], errors="coerce").dt.date
     fmt_cols = {}
     if "Total Including Tax"  in top_anom.columns: fmt_cols["Total Including Tax"]  = "${:,.2f}"
     if "Outstanding Balance"  in top_anom.columns: fmt_cols["Outstanding Balance"]  = "${:,.2f}"
@@ -894,7 +849,7 @@ elif page == "🚨 Anomaly Detection":
     _col_cfg = {}
     if "Transaction Key"     in _have_cols: _col_cfg["Transaction Key"]     = st.column_config.NumberColumn("Txn Key",          width="small")
     if "WWI Transaction ID"  in _have_cols: _col_cfg["WWI Transaction ID"]  = st.column_config.NumberColumn("WWI Txn ID",       width="small")
-    if "Date Key"            in _have_cols: _col_cfg["Date Key"]            = st.column_config.DateColumn("Date",               width="small")
+    if "Date Key"            in _have_cols: _col_cfg["Date Key"]            = st.column_config.TextColumn("Date",               width="small")
     if "Payment Method"      in _have_cols: _col_cfg["Payment Method"]      = st.column_config.TextColumn("Payment",            width="medium")
     if "Total Including Tax"  in _have_cols: _col_cfg["Total Including Tax"] = st.column_config.TextColumn("Total incl. Tax",   width="medium")
     if "Outstanding Balance"  in _have_cols: _col_cfg["Outstanding Balance"] = st.column_config.TextColumn("Outstanding",       width="medium")

@@ -58,8 +58,9 @@ def revenue_timeline(sale_df):
     fig.update_layout(**LAYOUT, title=dict(text="Revenue & Profit Over Time",
                                            font=dict(size=15, color="#00D4FF")),
                       legend=dict(bgcolor="rgba(0,0,0,0)",
-                                  x=0.01, y=0.99,
-                                  xanchor="left", yanchor="top"))
+                                  orientation="h",
+                                  x=0.5, y=1.12,
+                                  xanchor="center", yanchor="top"))
     return fig
 
 
