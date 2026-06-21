@@ -820,8 +820,8 @@ elif page == "🚨 Anomaly Detection":
                 template="plotly_dark", hole=0.35)
             fig_pm.update_traces(textposition="inside", textinfo="percent+label",
                                  insidetextfont=dict(size=10))
+            fig_pm.update_layout(**ch.LAYOUT)
             fig_pm.update_layout(
-                **ch.LAYOUT,
                 title=dict(text="By Payment Method", font=dict(color="#00D4FF", size=13)),
                 legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=9)),
                 margin=dict(l=10, r=10, t=45, b=10))
