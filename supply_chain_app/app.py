@@ -182,23 +182,61 @@ with st.sidebar:
     <div class="sb-divider"></div>
     """, unsafe_allow_html=True)
 
-    total_records = len(sale) + len(inv_raw) + len(pur) + len(mv) + len(txn)
-    n_skus        = sale["Stock Item Key"].nunique() if "Stock Item Key" in sale.columns else 0
-    n_customers   = sale["Customer Key"].nunique()   if "Customer Key"   in sale.columns else 0
+    # ── Operations Pulse ──────────────────────────────────────────────────────
+    _latest_date = pd.NaT
+    if "Invoice Date Key" in sale.columns:
+        _latest_date = sale["Invoice Date Key"].dropna().max()
+    _date_str = _latest_date.strftime("%b %Y") if pd.notna(_latest_date) else "N/A"
+
+    # YoY revenue trend
+    _yrs = sorted(sale["Calendar Year"].dropna().unique().tolist()) if "Calendar Year" in sale.columns else []
+    if len(_yrs) >= 2:
+        _ly, _py = int(_yrs[-1]), int(_yrs[-2])
+        _r_ly = sale[sale["Calendar Year"] == _ly]["Total Excluding Tax"].sum()
+        _r_py = sale[sale["Calendar Year"] == _py]["Total Excluding Tax"].sum()
+        _yoy  = (_r_ly - _r_py) / _r_py * 100 if _r_py > 0 else 0
+        _yoy_arrow = "▲" if _yoy >= 0 else "▼"
+        _yoy_color = "#00C49A" if _yoy >= 0 else "#FF4C6E"
+        _yoy_str   = f"{_yoy_arrow} {abs(_yoy):.1f}%"
+    else:
+        _yoy_str, _yoy_color = "N/A", "#AAB4BE"
+
+    # Inventory alerts
+    _reorder_alerts   = int(inv_raw["Reorder Flag"].sum())   if "Reorder Flag"   in inv_raw.columns else 0
+    _overstock_alerts = int(inv_raw["Overstock Flag"].sum()) if "Overstock Flag" in inv_raw.columns else 0
+    _alert_color      = "#FF4C6E" if _reorder_alerts > 0 else "#00C49A"
+    _n_skus           = sale["Stock Item Key"].nunique() if "Stock Item Key" in sale.columns else 0
+    _n_cust           = sale["Customer Key"].nunique()   if "Customer Key"   in sale.columns else 0
+    _badge_cls        = "badge-high" if _overstock_alerts > 0 else "badge-low"
+    _badge_txt        = f"⚠ {_overstock_alerts} Overstock" if _overstock_alerts > 0 else "✓ Stock OK"
 
     st.markdown(f"""
-    <div class="sb-status">
-        <div class="sb-status-head">
+    <div class="sb-pulse">
+        <div class="sb-pulse-head">
             <div class="sb-status-dot"></div>
-            <span class="sb-status-label">Data Warehouse · Live</span>
+            <span class="sb-pulse-title">📡 Operations Pulse</span>
         </div>
-        <div class="sb-status-grid">
-            <div class="sb-stat"><div class="sb-stat-val">{total_records/1e3:.0f}K</div>
-                <div class="sb-stat-lbl">Records</div></div>
-            <div class="sb-stat"><div class="sb-stat-val">{n_skus}</div>
-                <div class="sb-stat-lbl">SKUs</div></div>
-            <div class="sb-stat"><div class="sb-stat-val">{n_customers}</div>
-                <div class="sb-stat-lbl">Customers</div></div>
+        <div class="sb-pulse-date">Data through <b style="color:#8BA0B4">{_date_str}</b></div>
+        <div class="sb-pulse-grid">
+            <div class="sb-pulse-item">
+                <div class="sb-pulse-val" style="color:{_yoy_color}">{_yoy_str}</div>
+                <div class="sb-pulse-lbl">YoY Revenue</div>
+            </div>
+            <div class="sb-pulse-item">
+                <div class="sb-pulse-val" style="color:{_alert_color}">{_reorder_alerts:,}</div>
+                <div class="sb-pulse-lbl">Reorder Alerts</div>
+            </div>
+            <div class="sb-pulse-item">
+                <div class="sb-pulse-val">{_n_skus:,}</div>
+                <div class="sb-pulse-lbl">Active SKUs</div>
+            </div>
+            <div class="sb-pulse-item">
+                <div class="sb-pulse-val">{_n_cust:,}</div>
+                <div class="sb-pulse-lbl">Customers</div>
+            </div>
+        </div>
+        <div class="sb-pulse-footer">
+            <span class="sb-pulse-badge {_badge_cls}">{_badge_txt}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -213,19 +251,6 @@ with st.sidebar:
         "🏭 Supplier Analytics",
         "🚨 Anomaly Detection",
     ], label_visibility="collapsed")
-
-    if st.session_state.model_metrics:
-        st.markdown('<div class="sb-divider" style="margin-top:10px"></div>',
-                    unsafe_allow_html=True)
-        st.markdown('<div class="sb-section-label">Model Performance</div>',
-                    unsafe_allow_html=True)
-        rows_html = "".join(
-            f'<div class="sb-metric-row">'
-            f'<span class="sb-metric-name">{k}</span>'
-            f'<span class="sb-metric-val {q}">{v}</span></div>'
-            for k, (v, q) in st.session_state.model_metrics.items()
-        )
-        st.markdown(f'<div class="sb-metrics">{rows_html}</div>', unsafe_allow_html=True)
 
 
 
@@ -286,7 +311,23 @@ if page == "🏠 Executive Dashboard":
             st.plotly_chart(_c(ch.revenue_timeline(sale), _H),
                             use_container_width=True, config={"displayModeBar": False})
         with row1_right:
-            st.plotly_chart(_c(ch.sales_by_category(sale), _H),
+            # Revenue by Sales Territory (moved from Territory & Customers tab)
+            _terr_ov = (sale.groupby("Sales Territory")
+                        .agg(Revenue=("Total Excluding Tax", "sum"),
+                             Profit=("Profit", "sum"))
+                        .reset_index().dropna(subset=["Sales Territory"])
+                        .sort_values("Revenue", ascending=False))
+            _fig_terr = px.bar(
+                _terr_ov, x="Sales Territory", y="Revenue",
+                color="Profit", color_continuous_scale="Viridis",
+                template="plotly_dark",
+                labels={"Revenue": "Revenue ($)", "Profit": "Profit ($)"})
+            _fig_terr.update_layout(
+                paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="#E0E0E0",
+                coloraxis_colorbar=dict(tickfont=dict(color="#E0E0E0")),
+                title=dict(text="Revenue by Sales Territory",
+                           font=dict(color="#00D4FF", size=13)))
+            st.plotly_chart(_c(_fig_terr, _H),
                             use_container_width=True, config={"displayModeBar": False})
 
         row2_left, row2_right = st.columns(2)
@@ -294,7 +335,25 @@ if page == "🏠 Executive Dashboard":
             st.plotly_chart(_c(ch.margin_waterfall(sale), _H),
                             use_container_width=True, config={"displayModeBar": False})
         with row2_right:
-            st.plotly_chart(_c(ch.top_territory_chart(sale), _H),
+            # Top 10 Customers by Revenue — horizontal bar chart
+            _top_cust_ov = (sale.groupby("Customer")
+                            .agg(Revenue=("Total Excluding Tax", "sum"),
+                                 Profit=("Profit", "sum"))
+                            .reset_index()
+                            .sort_values("Revenue", ascending=False).head(10))
+            _fig_cust_bar = px.bar(
+                _top_cust_ov.sort_values("Revenue", ascending=True),
+                y="Customer", x="Revenue", orientation="h",
+                color="Revenue", color_continuous_scale="Blues",
+                template="plotly_dark",
+                labels={"Revenue": "Revenue ($)"})
+            _fig_cust_bar.update_layout(
+                paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="#E0E0E0",
+                coloraxis_showscale=False,
+                title=dict(text="🌟 Top 10 Customers by Revenue",
+                           font=dict(color="#00D4FF", size=13)),
+                xaxis=dict(tickformat="$,.0s"))
+            st.plotly_chart(_c(_fig_cust_bar, _H),
                             use_container_width=True, config={"displayModeBar": False})
 
     # ── Tab 2: Territory & Customers ─────────────────────────────────────────
@@ -343,7 +402,7 @@ if page == "🏠 Executive Dashboard":
 # PAGE 2 — DEMAND FORECASTING
 # Row 1: KPIs + horizon slider merged in one row (saves ~50 px)
 # Row 2: Forecast chart (full-width, 260 px)
-# Row 3: Feature importance | Forecast table | Actual vs Predicted  (3-up)
+# Row 3: Forecast table (full-width)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📈 Demand Forecasting":
     st.title("Demand Forecasting")
@@ -380,27 +439,7 @@ elif page == "📈 Demand Forecasting":
             _c(ch.forecast_chart(info, selected), 260),
             use_container_width=True, config={"displayModeBar": False})
 
-    # Row 3 — Actual vs Predicted full-width (feature importance removed — not for end users)
-    fig_ap = go.Figure()
-    fig_ap.add_trace(go.Scatter(
-        x=info["test_true"], y=info["test_pred"], mode="markers",
-        marker=dict(color="#00D4FF", opacity=0.45, size=4), name="Predictions"))
-    mn = float(min(info["test_true"].min(), info["test_pred"].min()))
-    mx = float(max(info["test_true"].max(), info["test_pred"].max()))
-    fig_ap.add_trace(go.Scatter(
-        x=[mn, mx], y=[mn, mx], mode="lines",
-        line=dict(color="#FF6B35", dash="dot", width=1.5), name="Perfect fit"))
-    fig_ap.update_layout(
-        template="plotly_dark", paper_bgcolor="#0E1117", plot_bgcolor="#0E1117",
-        font_color="#E0E0E0",
-        xaxis_title="Actual Units", yaxis_title="Predicted Units",
-        title=dict(text=f"Actual vs Predicted  —  R²={r2:.3f} (log-scale)",
-                   font=dict(color="#00D4FF", size=13)),
-        legend=dict(bgcolor="rgba(0,0,0,0)"))
-    st.plotly_chart(_c(fig_ap, 240),
-                    use_container_width=True, config={"displayModeBar": False})
-
-    # Row 4 — Forecast table FULL WIDTH so every column is visible without scrolling
+    # Row 3 — Forecast table FULL WIDTH so every column is visible without scrolling
     st.caption("📋 Forecast Table")
     if selected and not info["forecast_df"].empty:
         fc_show = (
@@ -432,9 +471,10 @@ elif page == "📈 Demand Forecasting":
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 3 — INVENTORY RISK
-# Row 1: 4 KPIs
-# Row 2: Risk matrix | Risk pie | Feature importance  (3-up, 255 px)
-# Row 3: HIGH-risk table | Classification report       (2-up, 185 px)
+# Row 1: 5 KPIs (incl. Balanced Accuracy)
+# Row 2: Risk matrix (wide) | Risk pie
+# Row 3: HIGH-risk table full-width
+# Row 4: MEDIUM-risk table (1 row)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📦 Inventory Risk":
     st.title("Inventory Risk Intelligence")
@@ -453,12 +493,14 @@ elif page == "📦 Inventory Risk":
         q = "good" if inv_info["auc"] > 0.70 else "warn"
         st.session_state.model_metrics["Stockout Bal-Acc"] = (f"{inv_info['auc']:.3f}", q)
 
-    # Row 1 — KPIs
-    k1, k2, k3, k4 = st.columns(4)
-    with k1: metric_card("Total SKUs",       f"{len(inv_df):,}")
-    with k2: metric_card("HIGH Risk SKUs",   f"{high}", delta_str=f"+{high} need action")
-    with k3: metric_card("MEDIUM Risk SKUs", f"{medium}")
-    with k4: metric_card("Stock Value",      f"${stock_val/1e6:.1f}M")
+    # Row 1 — KPIs (5 cards including Balanced Accuracy)
+    _bal_acc_val = inv_info["auc"] if inv_info["auc"] else 0.0
+    k1, k2, k3, k4, k5 = st.columns(5)
+    with k1: metric_card("Total SKUs",        f"{len(inv_df):,}")
+    with k2: metric_card("HIGH Risk SKUs",    f"{high}", delta_str=f"+{high} need action")
+    with k3: metric_card("MEDIUM Risk SKUs",  f"{medium}")
+    with k4: metric_card("Stock Value",       f"${stock_val/1e6:.1f}M")
+    with k5: metric_card("Balanced Accuracy", f"{_bal_acc_val:.3f}")
 
     # Row 2 — Risk scatter (wider) + pie side by side
     rc1, rc2 = st.columns([3, 1])
@@ -481,7 +523,7 @@ elif page == "📦 Inventory Risk":
         st.plotly_chart(_c(fig_pie, 270),
                         use_container_width=True, config={"displayModeBar": False})
 
-    # Row 3 — HIGH Risk table full-width + Classification Report below
+    # Row 3 — HIGH Risk table + MEDIUM Risk table below
     st.caption("⚠️ HIGH Risk SKUs — Immediate Reorder Needed")
     high_df = (inv_df[inv_df["Predicted_Risk_Name"] == "HIGH"]
                [["Stock Item","Stock Category","Quantity On Hand",
@@ -508,13 +550,36 @@ elif page == "📦 Inventory Risk":
         "Lead Time Days":      st.column_config.NumberColumn("Lead d",    width="small"),
     })
 
-    if inv_info["report"]:
-        with st.expander("📋 Classification Report", expanded=False):
-            rpt = pd.DataFrame(inv_info["report"]).T.drop(columns=["support"], errors="ignore")
-            st.dataframe(rpt.style.format("{:.2f}"), use_container_width=True)
-        if inv_info["auc"]:
-            _mn = inv_info.get("metric_name", "Balanced Accuracy")
-            st.metric(_mn, f"{inv_info['auc']:.3f}")
+    # MEDIUM Risk table (1 representative row)
+    st.caption("🟡 MEDIUM Risk SKUs — Monitor Closely")
+    medium_df = (inv_df[inv_df["Predicted_Risk_Name"] == "MEDIUM"]
+                 [["Stock Item","Stock Category","Quantity On Hand",
+                   "Reorder Level","Target Stock Level","Monthly_Velocity",
+                   "Days_Coverage","Stock Value","Lead Time Days"]]
+                 .sort_values("Quantity On Hand").head(1)
+                 .reset_index(drop=True))
+    if not medium_df.empty:
+        st.dataframe(medium_df.style.format({
+            "Quantity On Hand":   "{:,.0f}",
+            "Reorder Level":      "{:,.0f}",
+            "Target Stock Level": "{:,.0f}",
+            "Monthly_Velocity":   "{:,.1f}",
+            "Days_Coverage":      "{:,.0f}",
+            "Stock Value":        "${:,.0f}",
+        }), use_container_width=True, height=73, hide_index=True,
+        column_config={
+            "Stock Item":          st.column_config.TextColumn("SKU",         width="large"),
+            "Stock Category":      st.column_config.TextColumn("Category",    width="medium"),
+            "Quantity On Hand":    st.column_config.NumberColumn("QoH",       width="small"),
+            "Reorder Level":       st.column_config.NumberColumn("Reorder",   width="small"),
+            "Target Stock Level":  st.column_config.NumberColumn("Target",    width="small"),
+            "Monthly_Velocity":    st.column_config.NumberColumn("Mo.Vel",    width="small"),
+            "Days_Coverage":       st.column_config.NumberColumn("Days Cov",  width="small"),
+            "Stock Value":         st.column_config.TextColumn("$ Value",     width="medium"),
+            "Lead Time Days":      st.column_config.NumberColumn("Lead d",    width="small"),
+        })
+    else:
+        st.success("✅ No MEDIUM risk SKUs found.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -573,7 +638,7 @@ elif page == "👥 Customer Intelligence":
             }).background_gradient(subset=["Churn %"], cmap="RdYlGn_r"),
                 use_container_width=True, height=_ar_h, hide_index=True,
                 column_config={
-                    "Customer":    st.column_config.TextColumn("Customer",   width="large"),
+                    "Customer":    st.column_config.TextColumn("Customer",   width="small"),
                     "Recency":     st.column_config.NumberColumn("Rec(d)",   width="small"),
                     "Frequency":   st.column_config.NumberColumn("Orders",   width="small"),
                     "Revenue ($)": st.column_config.TextColumn("Revenue",    width="small"),
@@ -591,16 +656,6 @@ elif page == "👥 Customer Intelligence":
         if sil_score is not None:
             q_sil = "good" if sil_score > 0.45 else "warn" if sil_score > 0.25 else ""
             st.session_state.model_metrics["Seg Silhouette"] = (f"{sil_score:.3f}", q_sil)
-
-        st.info(
-            "ℹ️ **Segment counts differ from Churn counts by design.** "
-            "Segmentation (below) uses unsupervised GMM clustering on RFM behaviour — "
-            "it assigns every customer to exactly one of the clusters and labels the "
-            "worst cluster 'Churned/Lost'.  "
-            "The Churn tab uses a supervised ML model with Youden-J threshold — it "
-            "independently scores each customer's churn probability.  "
-            "The two methods answer different questions and their counts will not match."
-        )
 
         # KPI strip — use sale-level nunique so the number is consistent
         # with the Churn tab (both count unique Customer Keys in the sale fact).
@@ -665,11 +720,12 @@ elif page == "🏭 Supplier Analytics":
         st.session_state.model_metrics["Supplier R²"] = (f"{sup_info['test_r2']:.3f}", q)
 
     # KPI row
+    _at_risk_sup = int((sup_df["Quality_Score"] < 50).sum()) if "Quality_Score" in sup_df.columns else 0
     k1, k2, k3, k4, k5 = st.columns(5)
     with k1: metric_card("Avg Quality Score",        f"{avg_score:.0f}", suffix="/100")
     with k2: metric_card("Grade A Suppliers",        f"{grade_a}")
     with k3: metric_card("Low Fill-Rate (< 90 %)",   f"{low_fulf}")
-    with k4: metric_card("↑ Improving Trend",        f"{improving}")
+    with k4: metric_card("⚠️ At-Risk Suppliers",     f"{_at_risk_sup}", delta_str="Score < 50")
     with k5: metric_card("Top Supplier",             (top_sup or "N/A")[:20])
 
     tab_sc, tab_fu, tab_pillar = st.tabs(["🏆 Quality Scoring", "🔥 Fulfillment", "📊 Pillar Breakdown"])
@@ -805,15 +861,18 @@ elif page == "🚨 Anomaly Detection":
         if "Payment Method" in anom_df.columns:
             pm_anom = (anom_df.loc[is_anom_mask]
                        .groupby("Payment Method")["Is_Anomaly"].count()
-                       .reset_index().rename(columns={"Is_Anomaly":"Anomalies"}))
-            fig_pm = px.bar(pm_anom, x="Anomalies", y="Payment Method",
-                            orientation="h",
-                            color="Anomalies", color_continuous_scale="Reds",
-                            template="plotly_dark")
+                       .reset_index().rename(columns={"Is_Anomaly": "Anomalies"}))
+            fig_pm = px.pie(
+                pm_anom, values="Anomalies", names="Payment Method",
+                color_discrete_sequence=px.colors.sequential.Reds_r,
+                template="plotly_dark", hole=0.35)
+            fig_pm.update_traces(textposition="inside", textinfo="percent+label",
+                                 insidetextfont=dict(size=10))
             fig_pm.update_layout(
                 paper_bgcolor="#0E1117", font_color="#E0E0E0",
                 title=dict(text="By Payment Method", font=dict(color="#00D4FF", size=13)),
-                showlegend=False)
+                legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=9)),
+                margin=dict(l=10, r=10, t=45, b=10))
             st.plotly_chart(_c(fig_pm, 255),
                             use_container_width=True, config={"displayModeBar": False})
         else:
@@ -821,7 +880,7 @@ elif page == "🚨 Anomaly Detection":
 
     # Row 3 — anomalous transactions table
     st.caption("⚠️ Top Anomalous Transactions")
-    _want_cols = ["Transaction Key", "WWI Transaction ID", "Date Key", "Customer",
+    _want_cols = ["Transaction Key", "WWI Transaction ID", "Date Key",
                   "Payment Method", "Total Including Tax", "Outstanding Balance",
                   "Transaction Type", "Anomaly_Score"]
     _have_cols = [c for c in _want_cols if c in anom_df.columns]
@@ -833,15 +892,14 @@ elif page == "🚨 Anomaly Detection":
     if "Anomaly_Score"        in top_anom.columns: fmt_cols["Anomaly_Score"]        = "{:.4f}"
 
     _col_cfg = {}
-    if "Transaction Key"    in _have_cols: _col_cfg["Transaction Key"]    = st.column_config.NumberColumn("Txn Key",      width="small")
-    if "WWI Transaction ID" in _have_cols: _col_cfg["WWI Transaction ID"] = st.column_config.NumberColumn("WWI Txn ID",   width="small")
-    if "Date Key"           in _have_cols: _col_cfg["Date Key"]           = st.column_config.DateColumn("Date",           width="small")
-    if "Customer"           in _have_cols: _col_cfg["Customer"]           = st.column_config.TextColumn("Customer",       width="medium")
-    if "Payment Method"     in _have_cols: _col_cfg["Payment Method"]     = st.column_config.TextColumn("Payment",        width="medium")
-    if "Total Including Tax" in _have_cols: _col_cfg["Total Including Tax"] = st.column_config.TextColumn("Total incl. Tax", width="medium")
-    if "Outstanding Balance" in _have_cols: _col_cfg["Outstanding Balance"] = st.column_config.TextColumn("Outstanding",  width="medium")
-    if "Transaction Type"   in _have_cols: _col_cfg["Transaction Type"]   = st.column_config.TextColumn("Txn Type",       width="medium")
-    if "Anomaly_Score"      in _have_cols: _col_cfg["Anomaly_Score"]      = st.column_config.NumberColumn("Score",        width="small", format="%.4f")
+    if "Transaction Key"     in _have_cols: _col_cfg["Transaction Key"]     = st.column_config.NumberColumn("Txn Key",          width="small")
+    if "WWI Transaction ID"  in _have_cols: _col_cfg["WWI Transaction ID"]  = st.column_config.NumberColumn("WWI Txn ID",       width="small")
+    if "Date Key"            in _have_cols: _col_cfg["Date Key"]            = st.column_config.DateColumn("Date",               width="small")
+    if "Payment Method"      in _have_cols: _col_cfg["Payment Method"]      = st.column_config.TextColumn("Payment",            width="medium")
+    if "Total Including Tax"  in _have_cols: _col_cfg["Total Including Tax"] = st.column_config.TextColumn("Total incl. Tax",   width="medium")
+    if "Outstanding Balance"  in _have_cols: _col_cfg["Outstanding Balance"] = st.column_config.TextColumn("Outstanding",       width="medium")
+    if "Transaction Type"    in _have_cols: _col_cfg["Transaction Type"]    = st.column_config.TextColumn("Txn Type",           width="medium")
+    if "Anomaly_Score"       in _have_cols: _col_cfg["Anomaly_Score"]       = st.column_config.NumberColumn("Score",            width="small", format="%.4f")
 
     st.dataframe(top_anom.style.format(fmt_cols)
                  .background_gradient(subset=["Anomaly_Score"] if "Anomaly_Score" in top_anom.columns else [],

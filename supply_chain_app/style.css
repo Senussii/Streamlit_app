@@ -385,3 +385,91 @@ h3 { color: #8B949E !important; }
 
 /* Caption / subtitle */
 [data-testid="stCaptionContainer"] { color: #4D5966 !important; font-size: 0.78rem !important; }
+/* ══════════════════════════════════════════════════════════════════════════
+   Operations Pulse  ·  sidebar live KPI widget
+   ══════════════════════════════════════════════════════════════════════════ */
+.sb-pulse {
+    margin: 6px 10px 12px;
+    padding: 12px 14px 10px;
+    background: linear-gradient(135deg, rgba(0,212,255,0.05) 0%, rgba(0,196,154,0.04) 100%);
+    border: 1px solid rgba(0,212,255,0.15);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+}
+/* subtle top-edge accent bar */
+.sb-pulse::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #00D4FF 0%, #00C49A 50%, #7B2FBE 100%);
+    border-radius: 2px 2px 0 0;
+}
+.sb-pulse-head {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 4px;
+}
+.sb-pulse-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #8BA0B4;
+}
+.sb-pulse-date {
+    font-size: 0.68rem;
+    color: #556677;
+    margin-bottom: 10px;
+}
+.sb-pulse-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.sb-pulse-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 7px;
+    padding: 6px 8px;
+    text-align: center;
+}
+.sb-pulse-val {
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: #00D4FF;
+    line-height: 1.2;
+}
+.sb-pulse-lbl {
+    font-size: 0.60rem;
+    color: #556677;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 1px;
+}
+.sb-pulse-footer {
+    text-align: center;
+    margin-top: 2px;
+}
+.sb-pulse-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+}
+.badge-high {
+    background: rgba(255,76,110,0.15);
+    color: #FF4C6E;
+    border: 1px solid rgba(255,76,110,0.30);
+}
+.badge-low {
+    background: rgba(0,196,154,0.12);
+    color: #00C49A;
+    border: 1px solid rgba(0,196,154,0.25);
+}

@@ -243,12 +243,12 @@ def anomaly_chart(txn_df):
 
     fig = go.Figure()
 
-    # ① Normal — faint WebGL cloud (background)
+    # ① Normal — visible diamond markers (background)
     fig.add_trace(go.Scattergl(
         x=normal[x_col], y=normal[y_col],
         mode="markers",
         name=f"Normal (sample of {_MAX_NORMAL:,})",
-        marker=dict(color="#00D4FF", size=3, opacity=0.20),
+        marker=dict(color="#00D4FF", size=6, opacity=0.45, symbol="diamond"),
         hovertemplate=(
             "<b>Normal</b><br>"
             "Total incl. Tax: $%{x:,.0f}<br>"
@@ -271,7 +271,7 @@ def anomaly_chart(txn_df):
 
     fig.update_layout(
         **LAYOUT,
-        title=dict(text="Transaction Anomaly Detection (WebGL)",
+        title=dict(text="Transaction Anomaly Detection",
                    font=dict(size=15, color="#00D4FF")),
         xaxis_title="Total Including Tax ($)",
         yaxis_title="Outstanding Balance ($)",
