@@ -262,7 +262,6 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════════════════════
 if page == "🏠 Executive Dashboard":
     st.title("Executive Supply Chain Dashboard")
-    st.caption("Galaxy Schema · FY2013-2016 · Real-time KPIs")
 
     total_rev    = sale["Total Excluding Tax"].sum()
     total_profit = sale["Profit"].sum()
@@ -303,8 +302,10 @@ if page == "🏠 Executive Dashboard":
 
     row1_left, row1_right = st.columns(2)
     with row1_left:
-        st.plotly_chart(_c(ch.revenue_timeline(sale), _H),
-                        use_container_width=True, config={"displayModeBar": False})
+        _rv = ch.revenue_timeline(sale)
+        _c(_rv, _H)
+        _rv.update_layout(margin=dict(l=32, r=14, t=72, b=26))
+        st.plotly_chart(_rv, use_container_width=True, config={"displayModeBar": False})
     with row1_right:
         # Territory revenue bar — uses ch.LAYOUT via the shared chart function
         st.plotly_chart(_c(ch.top_territory_chart(sale), _H),
@@ -355,7 +356,6 @@ if page == "🏠 Executive Dashboard":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📈 Demand Forecasting":
     st.title("Demand Forecasting")
-    st.caption("LightGBM / HistGradientBoosting · Auto-regressive · Per Stock Category")
 
     # KPIs + slider in one row
     km1, km2, km3, km4, ks = st.columns([1, 1, 1, 1, 2])
@@ -389,7 +389,7 @@ elif page == "📈 Demand Forecasting":
             use_container_width=True, config={"displayModeBar": False})
 
     # Row 3 — Forecast table FULL WIDTH so every column is visible without scrolling
-    st.caption("📋 Forecast Table")
+    st.markdown('<p class="tbl-title">📋 Forecast Table</p>', unsafe_allow_html=True)
     if selected and not info["forecast_df"].empty:
         fc_show = (
             info["forecast_df"][info["forecast_df"]["Stock Category"].isin(selected)]
@@ -427,7 +427,6 @@ elif page == "📈 Demand Forecasting":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📦 Inventory Risk":
     st.title("Inventory Risk Intelligence")
-    st.caption("LightGBM Classifier · Corrected Monthly Velocity · Stockout Alerts")
 
     with st.spinner("Running stockout risk model…"):
         inv_info = _stockout(inv_raw, mv, sale)
@@ -476,7 +475,7 @@ elif page == "📦 Inventory Risk":
                         use_container_width=True, config={"displayModeBar": False})
 
     # Row 3 — HIGH Risk table + MEDIUM Risk table below
-    st.caption("⚠️ HIGH Risk SKUs — Immediate Reorder Needed")
+    st.markdown('<p class="tbl-title">⚠️ HIGH Risk SKUs — Immediate Reorder Needed</p>', unsafe_allow_html=True)
     high_df = (inv_df[inv_df["Predicted_Risk_Name"] == "HIGH"]
                [["Stock Item","Stock Category","Quantity On Hand",
                  "Reorder Level","Target Stock Level","Monthly_Velocity",
@@ -503,7 +502,7 @@ elif page == "📦 Inventory Risk":
     })
 
     # MEDIUM Risk table (1 representative row)
-    st.caption("🟡 MEDIUM Risk SKUs — Monitor Closely")
+    st.markdown('<p class="tbl-title">🟡 MEDIUM Risk SKUs — Monitor Closely</p>', unsafe_allow_html=True)
     medium_df = (inv_df[inv_df["Predicted_Risk_Name"] == "MEDIUM"]
                  [["Stock Item","Stock Category","Quantity On Hand",
                    "Reorder Level","Target Stock Level","Monthly_Velocity",
@@ -541,7 +540,6 @@ elif page == "📦 Inventory Risk":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "👥 Customer Intelligence":
     st.title("Customer Intelligence")
-    st.caption("Churn Predictor · RFM Segmentation · KMeans Clustering")
 
     tab_ch, tab_seg = st.tabs(["🔮 Churn Prediction", "🗺️ RFM Segmentation"])
 
@@ -584,7 +582,7 @@ elif page == "👥 Customer Intelligence":
             at_risk["Churn %"]     = (at_risk["Churn %"] * 100).round(1)
             at_risk["Revenue ($)"] = at_risk["Revenue ($)"].round(0)
             _ar_h = min(len(at_risk) * 35 + 38, 280)   # dynamic height — no empty rows
-            st.caption("🚨 Top At-Risk Customers")
+            st.markdown('<p class="tbl-title">🚨 Top At-Risk Customers</p>', unsafe_allow_html=True)
             st.dataframe(at_risk.style.format({
                 "Revenue ($)": "${:,.0f}", "Churn %": "{:.1f}%",
             }).background_gradient(subset=["Churn %"], cmap="RdYlGn_r"),
@@ -631,7 +629,7 @@ elif page == "👥 Customer Intelligence":
                         use_container_width=True, config={"displayModeBar": False})
 
         # Segment summary full-width below — all columns visible
-        st.caption("📋 Segment Summary")
+        st.markdown('<p class="tbl-title">📋 Segment Summary</p>', unsafe_allow_html=True)
         st.dataframe(seg_sum.style.format({
             "Avg_Recency":   "{:.0f}",
             "Avg_Frequency": "{:.0f}",
@@ -653,7 +651,6 @@ elif page == "👥 Customer Intelligence":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🏭 Supplier Analytics":
     st.title("Supplier Analytics & Quality Scoring")
-    st.caption("Volume-unbiased scoring · 5-pillar composite · Trend-aware · HistGB + RF blend")
 
     with st.spinner("Scoring suppliers…"):
         sup_info = _supplier(pur, dims["supplier"])
@@ -693,7 +690,7 @@ elif page == "🏭 Supplier Analytics":
                         use_container_width=True, config={"displayModeBar": False})
 
         # Full scorecard — "Supplier Rating" removed per business request
-        st.caption("📋 Full Supplier Scorecard  *(True Fill = unit-weighted Σreceived/Σordered)*")
+        st.markdown('<p class="tbl-title">📋 Full Supplier Scorecard</p>', unsafe_allow_html=True)
         show_cols = ["Supplier", "Grade", "Quality_Score"]
         show_cols += [c for c in ["True_Fulfillment", "Trend_Direction",
                                    "Total_Orders", "Total_Value"] if c in sup_df.columns]
@@ -717,7 +714,7 @@ elif page == "🏭 Supplier Analytics":
         )
 
     with tab_pillar:
-        st.caption("📐 Pillar scores show where each supplier excels or lags (each 0-100)")
+        st.markdown('<p class="tbl-title">📐 Supplier Pillar Scores</p>', unsafe_allow_html=True)
         pillar_cols = [c for c in ["Supplier", "Grade", "P_Reliability", "P_Consistency",
                                     "P_Trend", "P_Volume", "P_Attributes", "Quality_Score"]
                        if c in sup_df.columns]
@@ -752,7 +749,6 @@ elif page == "🏭 Supplier Analytics":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🚨 Anomaly Detection":
     st.title("Financial Transaction Anomaly Detection")
-    st.caption("Isolation Forest · RobustScaler · Log-transformed Features · 5 % Contamination · WebGL rendering")
 
     with st.spinner("Running Isolation Forest (runs once, then cached in session)…"):
         if "anom_info" not in st.session_state:
@@ -831,7 +827,7 @@ elif page == "🚨 Anomaly Detection":
             st.info("Payment Method column not available.")
 
     # Row 3 — anomalous transactions table
-    st.caption("⚠️ Top Anomalous Transactions")
+    st.markdown('<p class="tbl-title">⚠️ Top Anomalous Transactions</p>', unsafe_allow_html=True)
     _want_cols = ["Transaction Key", "WWI Transaction ID", "Date Key",
                   "Payment Method", "Total Including Tax", "Outstanding Balance",
                   "Transaction Type", "Anomaly_Score"]

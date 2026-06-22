@@ -473,3 +473,12 @@ h3 { color: #8B949E !important; }
     color: #00C49A;
     border: 1px solid rgba(0,196,154,0.25);
 }
+
+/* ── Table titles — same accent colour as chart titles ── */
+p.tbl-title {
+    color: #00D4FF;
+    font-weight: 600;
+    font-size: 0.88rem;
+    margin: 10px 0 4px;
+    letter-spacing: 0.01em;
+}

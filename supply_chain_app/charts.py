@@ -59,7 +59,7 @@ def revenue_timeline(sale_df):
                                            font=dict(size=15, color="#00D4FF")),
                       legend=dict(bgcolor="rgba(0,0,0,0)",
                                   orientation="h",
-                                  x=0.5, y=1.12,
+                                  x=0.5, y=1.22,
                                   xanchor="center", yanchor="top"))
     return fig
 
@@ -169,25 +169,30 @@ def inventory_risk_scatter(inv_df):
 
 # ── Top Sales Territory ───────────────────────────────────────────────────────
 def top_territory_chart(sale_df):
-    """Horizontal bar — revenue & margin % by sales territory (top 8)."""
+    """Horizontal bar — revenue by sales territory (top 8), theme-aligned colors."""
     terr = (sale_df.groupby("Sales Territory")
             .agg(Revenue=("Total Excluding Tax", "sum"),
                  Profit=("Profit", "sum"))
             .reset_index()
             .dropna(subset=["Sales Territory"])
-            .assign(Margin=lambda d: d["Profit"] / d["Revenue"].replace(0, np.nan) * 100)
             .sort_values("Revenue", ascending=True)
             .tail(8))
 
-    colors = terr["Margin"].apply(
-        lambda m: "#00C49A" if m >= 30 else "#FFD700" if m >= 15 else "#FF6B35")
+    n = len(terr)
+    # Gradient from deep navy → theme cyan, one shade per bar
+    bar_colors = [
+        f"rgba({int(10 + (0 - 10) * i/(max(n-1,1)))}, "
+        f"{int(36 + (212 - 36) * i/(max(n-1,1)))}, "
+        f"{int(64 + (255 - 64) * i/(max(n-1,1)))}, 0.88)"
+        for i in range(n)
+    ]
 
     fig = go.Figure()
     fig.add_trace(go.Bar(
         y=terr["Sales Territory"], x=terr["Revenue"],
         orientation="h", name="Revenue",
-        marker_color=colors, opacity=0.85,
-        text=terr["Margin"].apply(lambda m: f"{m:.1f}%"),
+        marker_color=bar_colors,
+        text=terr["Revenue"].apply(lambda v: f"${v/1e6:.1f}M"),
         textposition="outside",
         textfont=dict(size=10, color="#E0E0E0"),
     ))
