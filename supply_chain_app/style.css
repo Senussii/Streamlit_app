@@ -482,3 +482,9 @@ p.tbl-title {
     margin: 10px 0 4px;
     letter-spacing: 0.01em;
 }
+
+/* ── Page title → cards breathing room ── */
+.main h1 {
+    margin-bottom: 1.1rem !important;
+    padding-bottom: 0.2rem !important;
+}

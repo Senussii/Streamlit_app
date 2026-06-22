@@ -323,16 +323,20 @@ if page == "🏠 Executive Dashboard":
                         .reset_index()
                         .sort_values("Revenue", ascending=False).head(10)
                         .sort_values("Revenue", ascending=True))
+        _cust_max_rev = _top_cust_ov["Revenue"].max()
+        _n_cust_bars  = len(_top_cust_ov)
+        # Opacity gradient: lowest = palest, highest = most saturated (darkest)
+        _cust_colors  = [
+            f"rgba(0, 212, 255, {0.18 + 0.82 * i / max(_n_cust_bars - 1, 1):.2f})"
+            for i in range(_n_cust_bars)
+        ]
         _fig_cust_bar = go.Figure(go.Bar(
             y=_top_cust_ov["Customer"],
             x=_top_cust_ov["Revenue"],
             orientation="h",
-            marker=dict(
-                color=_top_cust_ov["Revenue"].values,
-                colorscale=[[0, "#0A2440"], [0.5, "#0077AA"], [1, "#00D4FF"]],
-                showscale=False,
-            ),
-            text=_top_cust_ov["Revenue"].apply(lambda v: f"${v/1e6:.1f}M"),
+            marker_color=_cust_colors,
+            cliponaxis=False,
+            text=_top_cust_ov["Revenue"].apply(lambda v: f"${v/1e3:,.0f}K"),
             textposition="outside",
             textfont=dict(size=9, color="#E0E0E0"),
             hovertemplate="<b>%{y}</b><br>Revenue: $%{x:,.0f}<extra></extra>",
@@ -341,7 +345,8 @@ if page == "🏠 Executive Dashboard":
             **ch.LAYOUT,
             title=dict(text="🌟 Top 10 Customers by Revenue",
                        font=dict(size=13, color="#00D4FF")),
-            xaxis=dict(tickformat="$,.0s", title="Revenue ($)"),
+            xaxis=dict(tickformat="$,.0s", title="Revenue ($)",
+                       range=[0, _cust_max_rev * 1.22]),
             yaxis_title="",
         )
         st.plotly_chart(_c(_fig_cust_bar, _H),

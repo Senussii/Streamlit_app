@@ -179,19 +179,20 @@ def top_territory_chart(sale_df):
             .tail(8))
 
     n = len(terr)
-    # Gradient from deep navy → theme cyan, one shade per bar
+    # Opacity gradient: lowest bar = palest, highest bar = most saturated (darkest)
     bar_colors = [
-        f"rgba({int(10 + (0 - 10) * i/(max(n-1,1)))}, "
-        f"{int(36 + (212 - 36) * i/(max(n-1,1)))}, "
-        f"{int(64 + (255 - 64) * i/(max(n-1,1)))}, 0.88)"
+        f"rgba(0, 212, 255, {0.18 + 0.82 * i / max(n - 1, 1):.2f})"
         for i in range(n)
     ]
+
+    max_rev = terr["Revenue"].max()
 
     fig = go.Figure()
     fig.add_trace(go.Bar(
         y=terr["Sales Territory"], x=terr["Revenue"],
         orientation="h", name="Revenue",
         marker_color=bar_colors,
+        cliponaxis=False,
         text=terr["Revenue"].apply(lambda v: f"${v/1e6:.1f}M"),
         textposition="outside",
         textfont=dict(size=10, color="#E0E0E0"),
@@ -201,7 +202,8 @@ def top_territory_chart(sale_df):
                                  font=dict(size=15, color="#00D4FF")),
                       xaxis_title="Revenue ($)", yaxis_title="",
                       legend=dict(bgcolor="rgba(0,0,0,0)"),
-                      xaxis=dict(tickformat="$,.0s"))
+                      xaxis=dict(tickformat="$,.0s",
+                                 range=[0, max_rev * 1.20]))
     return fig
 
 
