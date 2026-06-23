@@ -313,9 +313,11 @@ if page == "🏠 Executive Dashboard":
         _rv.update_layout(margin=dict(l=32, r=14, t=72, b=26))
         st.plotly_chart(_rv, use_container_width=True, config={"displayModeBar": False})
     with row1_right:
-        # Territory revenue bar — uses ch.LAYOUT via the shared chart function
-        st.plotly_chart(_c(ch.top_territory_chart(sale), _H),
-                        use_container_width=True, config={"displayModeBar": False})
+        # Territory revenue bar — top margin matches revenue timeline (t=72) for vertical alignment
+        _terr_fig = ch.top_territory_chart(sale)
+        _c(_terr_fig, _H)
+        _terr_fig.update_layout(margin=dict(l=32, r=14, t=72, b=26))
+        st.plotly_chart(_terr_fig, use_container_width=True, config={"displayModeBar": False})
 
     row2_left, row2_right = st.columns(2)
     with row2_left:
