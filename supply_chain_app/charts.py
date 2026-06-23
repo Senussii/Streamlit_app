@@ -178,27 +178,21 @@ def top_territory_chart(sale_df):
             .sort_values("Revenue", ascending=True)
             .tail(8))
 
-    n = len(terr)
-    # Darkest at top (highest value), lightest at bottom — index flipped with n-1-i
-    bar_colors = [
-        f"rgba(0, {int(212 - 142 * (n - 1 - i) / max(n - 1, 1))}, "
-        f"{int(255 - 115 * (n - 1 - i) / max(n - 1, 1))}, "
-        f"{0.75 + 0.25 * (n - 1 - i) / max(n - 1, 1):.2f})"
-        for i in range(n)
-    ]
-
-    max_rev = terr["Revenue"].max()
-
     fig = go.Figure()
     fig.add_trace(go.Bar(
         y=terr["Sales Territory"], x=terr["Revenue"],
         orientation="h", name="Revenue",
-        marker_color=bar_colors,
+        marker=dict(
+            color=terr["Revenue"],
+            colorscale=[[0, "rgba(0,212,255,0.75)"], [1, "rgba(0,50,130,1.0)"]],
+            showscale=False,
+        ),
         cliponaxis=False,
         text=terr["Revenue"].apply(lambda v: f"${v/1e6:.1f}M"),
         textposition="outside",
         textfont=dict(size=10, color="#E0E0E0"),
     ))
+    max_rev = terr["Revenue"].max()
     fig.update_layout(**LAYOUT,
                       title=dict(text="Revenue by Sales Territory",
                                  font=dict(size=15, color="#00D4FF")),
