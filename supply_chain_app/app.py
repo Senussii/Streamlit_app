@@ -60,7 +60,7 @@ def _c(fig, h: int = 255):
 
 def _ptitle(text: str) -> None:
     """Page title with a consistent breathing-room spacer below the heading."""
-    _ptitle(text)
+    st.title(text)
     st.markdown('<div style="margin-bottom:1.3rem"></div>', unsafe_allow_html=True)
 
 
