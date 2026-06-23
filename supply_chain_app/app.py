@@ -331,11 +331,11 @@ if page == "🏠 Executive Dashboard":
                         .sort_values("Revenue", ascending=True))
         _cust_max_rev = _top_cust_ov["Revenue"].max()
         _n_cust_bars  = len(_top_cust_ov)
-        # Light cyan (lowest/bottom) → deep navy (highest/top)
+        # Darkest at top (highest revenue), lightest at bottom — index flipped with n-1-i
         _cust_colors  = [
-            f"rgba(0, {int(212 - 142 * i / max(_n_cust_bars - 1, 1))}, "
-            f"{int(255 - 115 * i / max(_n_cust_bars - 1, 1))}, "
-            f"{0.75 + 0.25 * i / max(_n_cust_bars - 1, 1):.2f})"
+            f"rgba(0, {int(212 - 142 * (_n_cust_bars - 1 - i) / max(_n_cust_bars - 1, 1))}, "
+            f"{int(255 - 115 * (_n_cust_bars - 1 - i) / max(_n_cust_bars - 1, 1))}, "
+            f"{0.75 + 0.25 * (_n_cust_bars - 1 - i) / max(_n_cust_bars - 1, 1):.2f})"
             for i in range(_n_cust_bars)
         ]
         _fig_cust_bar = go.Figure(go.Bar(

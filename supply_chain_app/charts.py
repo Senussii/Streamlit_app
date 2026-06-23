@@ -179,11 +179,11 @@ def top_territory_chart(sale_df):
             .tail(8))
 
     n = len(terr)
-    # Light cyan (lowest/bottom) → deep navy (highest/top): darkest = highest value
+    # Darkest at top (highest value), lightest at bottom — index flipped with n-1-i
     bar_colors = [
-        f"rgba(0, {int(212 - 142 * i / max(n - 1, 1))}, "
-        f"{int(255 - 115 * i / max(n - 1, 1))}, "
-        f"{0.75 + 0.25 * i / max(n - 1, 1):.2f})"
+        f"rgba(0, {int(212 - 142 * (n - 1 - i) / max(n - 1, 1))}, "
+        f"{int(255 - 115 * (n - 1 - i) / max(n - 1, 1))}, "
+        f"{0.75 + 0.25 * (n - 1 - i) / max(n - 1, 1):.2f})"
         for i in range(n)
     ]
 
