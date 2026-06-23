@@ -179,9 +179,11 @@ def top_territory_chart(sale_df):
             .tail(8))
 
     n = len(terr)
-    # Opacity gradient: lowest bar = palest, highest bar = most saturated (darkest)
+    # Light cyan (lowest/bottom) → deep navy (highest/top): darkest = highest value
     bar_colors = [
-        f"rgba(0, 212, 255, {0.18 + 0.82 * i / max(n - 1, 1):.2f})"
+        f"rgba(0, {int(212 - 142 * i / max(n - 1, 1))}, "
+        f"{int(255 - 115 * i / max(n - 1, 1))}, "
+        f"{0.75 + 0.25 * i / max(n - 1, 1):.2f})"
         for i in range(n)
     ]
 

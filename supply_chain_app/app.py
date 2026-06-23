@@ -58,6 +58,12 @@ def _c(fig, h: int = 255):
     return fig
 
 
+def _ptitle(text: str) -> None:
+    """Page title with a consistent breathing-room spacer below the heading."""
+    _ptitle(text)
+    st.markdown('<div style="margin-bottom:1.3rem"></div>', unsafe_allow_html=True)
+
+
 def metric_card(label, value, delta_str="", prefix="", suffix=""):
     delta_html = ""
     if delta_str:
@@ -261,7 +267,7 @@ with st.sidebar:
 # 4-chart 2×2 grid (no tabs) — every chart follows ch.LAYOUT identity
 # ══════════════════════════════════════════════════════════════════════════════
 if page == "🏠 Executive Dashboard":
-    st.title("Executive Supply Chain Dashboard")
+    _ptitle("Executive Supply Chain Dashboard")
 
     total_rev    = sale["Total Excluding Tax"].sum()
     total_profit = sale["Profit"].sum()
@@ -325,9 +331,11 @@ if page == "🏠 Executive Dashboard":
                         .sort_values("Revenue", ascending=True))
         _cust_max_rev = _top_cust_ov["Revenue"].max()
         _n_cust_bars  = len(_top_cust_ov)
-        # Opacity gradient: lowest = palest, highest = most saturated (darkest)
+        # Light cyan (lowest/bottom) → deep navy (highest/top)
         _cust_colors  = [
-            f"rgba(0, 212, 255, {0.18 + 0.82 * i / max(_n_cust_bars - 1, 1):.2f})"
+            f"rgba(0, {int(212 - 142 * i / max(_n_cust_bars - 1, 1))}, "
+            f"{int(255 - 115 * i / max(_n_cust_bars - 1, 1))}, "
+            f"{0.75 + 0.25 * i / max(_n_cust_bars - 1, 1):.2f})"
             for i in range(_n_cust_bars)
         ]
         _fig_cust_bar = go.Figure(go.Bar(
@@ -360,7 +368,7 @@ if page == "🏠 Executive Dashboard":
 # Row 3: Forecast table (full-width)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📈 Demand Forecasting":
-    st.title("Demand Forecasting")
+    _ptitle("Demand Forecasting")
 
     # KPIs + slider in one row
     km1, km2, km3, km4, ks = st.columns([1, 1, 1, 1, 2])
@@ -431,7 +439,7 @@ elif page == "📈 Demand Forecasting":
 # Row 4: MEDIUM-risk table (1 row)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📦 Inventory Risk":
-    st.title("Inventory Risk Intelligence")
+    _ptitle("Inventory Risk Intelligence")
 
     with st.spinner("Running stockout risk model…"):
         inv_info = _stockout(inv_raw, mv, sale)
@@ -544,7 +552,7 @@ elif page == "📦 Inventory Risk":
 # Tab Segmentation: 2-up (3D scatter | segment summary)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "👥 Customer Intelligence":
-    st.title("Customer Intelligence")
+    _ptitle("Customer Intelligence")
 
     tab_ch, tab_seg = st.tabs(["🔮 Churn Prediction", "🗺️ RFM Segmentation"])
 
@@ -655,7 +663,7 @@ elif page == "👥 Customer Intelligence":
 # Tab Fulfillment: 2-up (heatmap | full scorecard table)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🏭 Supplier Analytics":
-    st.title("Supplier Analytics & Quality Scoring")
+    _ptitle("Supplier Analytics & Quality Scoring")
 
     with st.spinner("Scoring suppliers…"):
         sup_info = _supplier(pur, dims["supplier"])
@@ -753,7 +761,7 @@ elif page == "🏭 Supplier Analytics":
 # Row 3: Anomalous transactions table           (full-width, 185 px)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🚨 Anomaly Detection":
-    st.title("Financial Transaction Anomaly Detection")
+    _ptitle("Financial Transaction Anomaly Detection")
 
     with st.spinner("Running Isolation Forest (runs once, then cached in session)…"):
         if "anom_info" not in st.session_state:
